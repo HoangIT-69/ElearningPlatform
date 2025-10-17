@@ -1,0 +1,29 @@
+# Docker volumes (không commit data)
+postgres_data/
+pgadmin_data/
+redis_data/
+
+# Database backups
+database/backups/
+*.sql
+
+# Spring Boot
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+backend/.idea/
+backend/*.iml
+
+# Android
+mobile/.gradle/
+mobile/.idea/
+mobile/build/
+mobile/local.properties
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
