@@ -95,3 +95,52 @@ export const publishCourse = (courseId) => {
     // Endpoint này không cần body, chỉ cần gửi request POST
     return apiClient.post(`/courses/${courseId}/publish`);
 };
+export const createChapter = (chapterData) => apiClient.post('/chapters', chapterData);
+export const updateChapter = (id, data) => apiClient.put(`/chapters/${id}`, data);
+export const deleteChapter = (id) => apiClient.delete(`/chapters/${id}`);
+
+export const createLesson = (lessonData) => apiClient.post('/lessons', lessonData);
+export const updateLesson = (id, data) => apiClient.put(`/lessons/${id}`, data);
+export const deleteLesson = (id) => apiClient.delete(`/lessons/${id}`);
+
+
+/**
+ * Lấy danh sách tất cả các danh mục.
+ * Đây là API public.
+ */
+export const getCategoryTree = () => {
+    return apiClient.get('/categories/tree');
+};
+
+/* Lấy danh sách tất cả các danh mục (dạng phẳng).*/
+
+export const getAllCategories = () => {
+    return apiClient.get('/categories');
+};
+
+ /* Tạo một danh mục mới (yêu cầu quyền Admin).
+ */
+export const createCategory = (categoryData) => {
+    return apiClient.post('/categories', categoryData);
+};
+
+/**
+ * Cập nhật một danh mục (yêu cầu quyền Admin).
+ */
+export const updateCategory = (id, categoryData) => {
+    return apiClient.put(`/categories/${id}`, categoryData);
+};
+
+/**
+ * Xóa một danh mục (yêu cầu quyền Admin).
+ */
+export const deleteCategory = (id) => {
+    return apiClient.delete(`/categories/${id}`);
+};
+
+
+// =================================================================
+// COURSE-CATEGORY APIs - (Gán danh mục cho khóa học)
+// =================================================================
+export const addCategoryToCourse = (data) => apiClient.post('/course-categories', data);
+export const removeCategoryFromCourse = (data) => apiClient.delete('/course-categories', { data });

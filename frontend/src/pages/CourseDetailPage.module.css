@@ -4,51 +4,197 @@
 }
 
 .heroSection {
-    background-color: #2d2f31; /* Màu đen đậm của Udemy */
+    background-color: #2d2f31;
     color: #fff;
     padding: 3rem 1rem;
 }
 
 .heroContent {
-    max-width: 1000px;
+    max-width: 960px;
     margin: 0 auto;
 }
 
+/* --- Breadcrumb --- */
+.breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.breadcrumb a {
+    color: #c0c4fc;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+}
+
+.breadcrumb a:hover {
+    color: #fff;
+}
+
+.breadcrumbSeparator {
+    color: #d1d7dc;
+}
+
+/* --- Nội dung trong Hero --- */
 .courseTitle {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     font-weight: bold;
     margin-bottom: 1rem;
 }
 
 .courseShortDescription {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: #d1d7dc;
-    margin-bottom: 1rem;
-    max-width: 800px;
+    margin-bottom: 1.5rem;
+    max-width: 700px;
 }
 
 .instructorInfo {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.instructorNameLinkHero {
+    color: #c0c4fc;
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+/* --- Bố cục 2 cột --- */
+.mainLayout {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+.leftColumn {
+    flex: 2;
+    min-width: 300px;
+}
+
+.rightColumn {
+    flex: 1;
+    min-width: 300px;
+    position: sticky;
+    top: 2rem;
+}
+
+/* --- Thẻ nổi bên phải --- */
+.floatingCard {
+    background-color: #fff;
+    border: 1px solid #d1d7dc;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.thumbnailWrapper {
+    position: relative;
+    cursor: pointer;
+    background-color: #000;
+}
+.thumbnailWrapper:hover .playButtonOverlay {
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.cardThumbnail {
+    width: 100%;
+    display: block;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    transition: opacity 0.3s ease;
+}
+.thumbnailWrapper:hover .cardThumbnail {
+    opacity: 0.7;
+}
+
+.playButtonOverlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 4rem;
+    color: white;
+    text-shadow: 0 0 15px rgba(0,0,0,0.7);
+    transition: transform 0.2s ease;
+    pointer-events: none;
+}
+
+.previewText {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    background-color: rgba(0,0,0,0.6);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: bold;
+    pointer-events: none;
     font-size: 0.9rem;
 }
 
-.instructorInfo span {
-    color: #c0c4fc; /* Màu tím nhạt cho tên giảng viên */
+.videoPlayerWrapper {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 */
+    height: 0;
+    background-color: #000;
 }
 
-/* --- Phần nội dung chính --- */
-.mainContent {
-    max-width: 1000px;
-    margin: 2rem auto;
-    padding: 0 1rem;
+.videoPlayer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
 
-.section {
-    background-color: #fff;
-    border: 1px solid #d1d7dc;
+.cardBody {
     padding: 1.5rem;
+}
+.cardPrice {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+.addToCartButton, .buyNowButton {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #2d2f31;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+.addToCartButton {
+    background-color: #a435f0;
+    color: #fff;
+    border-color: #a435f0;
+}
+.buyNowButton {
+    background-color: #fff;
+    color: #2d2f31;
+}
+.cardIncludes {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+}
+.cardIncludes ul { list-style: none; padding: 0; margin-top: 0.75rem; }
+.cardIncludes li { margin-bottom: 0.5rem; }
+
+/* --- Các section bên trái --- */
+.section {
     margin-bottom: 2rem;
 }
 
@@ -58,17 +204,17 @@
     margin-bottom: 1.5rem;
 }
 
-/* --- Phần chương trình học (Curriculum) --- */
-.chapter {
-    border-bottom: 1px solid #d1d7dc;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
+.courseMeta, .objectivesList, .requirements, .description {
+    line-height: 1.6;
+    color: #333;
 }
-.chapter:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
+.courseMeta { color: #505050; }
 
+/* --- Chương trình học --- */
+.chapter {
+    border: 1px solid #d1d7dc;
+    margin-bottom: 0.5rem;
+}
 .chapterHeader {
     background-color: #f7f9fa;
     padding: 1rem;
@@ -78,72 +224,33 @@
     justify-content: space-between;
     align-items: center;
 }
-
-.lessonList {
-    list-style: none;
-    padding: 0;
-    margin-top: 1rem;
-}
-
+.chapterTitle { font-size: 1rem; }
+.chapterMeta { font-size: 0.9rem; color: #505050; display: flex; gap: 1rem; }
+.lessonList { list-style: none; padding: 0; }
 .lessonItem {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 1.5rem;
     border-top: 1px solid #f0f0f0;
 }
+.lessonTitleWrapper { display: flex; align-items: center; gap: 0.75rem; }
+.lessonIcon { font-size: 0.8rem; color: #505050; }
+.lessonTitle { color: #333; }
+.lessonDuration { color: #505050; font-size: 0.9rem; }
 
-.lessonTitle {
-    color: #333;
-}
-.lessonTitle::before {
-    content: '▶'; /* Biểu tượng video */
-    margin-right: 0.5rem;
-    font-size: 0.8rem;
-}
-
-.lessonDuration {
-    color: #505050;
-    font-size: 0.9rem;
-}
-
-/* --- Phần Mô tả & Yêu cầu --- */
-.description,
-.requirements {
-    line-height: 1.6;
-}
-
-/* --- Thông tin giảng viên --- */
+/* --- Giảng viên --- */
 .instructorNameLink {
     font-size: 1.2rem;
     font-weight: bold;
     color: #0056d2;
     text-decoration: none;
     margin-bottom: 0.5rem;
-    display: inline-block;
+    display: block;
 }
-.instructorBio {
-    color: #505050;
-    line-height: 1.6;
-}
-.instructorAvatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-right: 1.5rem;
-    float: left; /* Cho phép text bao quanh ảnh */
-}
+.instructorBio { color: #505050; }
+.instructorAvatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-right: 1.5rem; float: left; }
 
 /* --- Các thông báo --- */
-.message {
-    text-align: center;
-    padding: 3rem;
-    font-size: 1.2rem;
-    color: #555;
-}
-
-.error {
-    color: #c62828;
-    font-weight: bold;
-}
+.message { text-align: center; padding: 3rem; font-size: 1.2rem; color: #555; }
+.error { color: #c62828; font-weight: bold; }

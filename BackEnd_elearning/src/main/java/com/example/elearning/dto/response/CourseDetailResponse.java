@@ -1,6 +1,7 @@
 package com.example.elearning.dto.response;
 
-import com.example.elearning.entity.Chapter; // <-- THÊM IMPORT
+import com.example.elearning.entity.Chapter;
+import com.example.elearning.entity.Category; // <-- THÊM IMPORT
 import com.example.elearning.enums.CourseLevel;
 import com.example.elearning.enums.CourseStatus;
 import lombok.AllArgsConstructor;
@@ -65,4 +66,6 @@ public class CourseDetailResponse {
      * Tổng thời lượng của tất cả các video trong khóa học (tính bằng giây).
      */
     private Integer totalDuration;
+
+    private List<Category> categories;
 }

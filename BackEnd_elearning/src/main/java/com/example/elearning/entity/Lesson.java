@@ -31,6 +31,9 @@ public class Lesson {
     @Column(name = "is_free", nullable = false)
     private Boolean isFree = false;
 
+    @Column(name = "chapter_id", nullable = false)
+    private Long chapterId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

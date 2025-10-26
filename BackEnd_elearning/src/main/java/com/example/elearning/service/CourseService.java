@@ -4,23 +4,27 @@ import com.example.elearning.dto.request.CourseCreateRequest;
 import com.example.elearning.dto.request.CourseUpdateRequest;
 import com.example.elearning.dto.response.CourseDetailResponse;
 import com.example.elearning.dto.response.CourseResponse;
+import com.example.elearning.entity.Chapter;
 import com.example.elearning.entity.Course;
 import com.example.elearning.entity.User;
-import com.example.elearning.entity.Lesson;
-import com.example.elearning.entity.Chapter;
+import com.example.elearning.entity.Category;
+import com.example.elearning.entity.CourseCategory;
 import com.example.elearning.enums.CourseLevel;
 import com.example.elearning.enums.CourseStatus;
-import com.example.elearning.exception.BadRequestException;
-import com.example.elearning.exception.ResourceNotFoundException;
+import com.example.elearning.exception.AppException; // Bạn cần tạo class Exception này
 import com.example.elearning.repository.CourseRepository;
-import com.example.elearning.repository.CourseSpecification; // <-- IMPORT
+import com.example.elearning.repository.CourseSpecification;
+import com.example.elearning.repository.CourseCategoryRepository;
+import com.example.elearning.repository.CategoryRepository;
 import com.example.elearning.repository.UserRepository;
+import com.example.elearning.security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification; // <-- IMPORT
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,94 +40,73 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
-    private final CourseSpecification courseSpecification; // <-- THÊM VÀO: Khai báo Specification
+    private final CourseSpecification courseSpecification;
+    private final CourseCategoryRepository courseCategoryRepository;
+    private final CategoryRepository categoryRepository;
 
+    // 2. Cập nhật constructor để nhận tất cả dependency
     @Autowired
-    // <-- SỬA LẠI CONSTRUCTOR: Inject thêm CourseSpecification
-    public CourseService(CourseRepository courseRepository, UserRepository userRepository, CourseSpecification courseSpecification) {
+    public CourseService(CourseRepository courseRepository,
+                         UserRepository userRepository,
+                         CourseSpecification courseSpecification,
+                         CourseCategoryRepository courseCategoryRepository,
+                         CategoryRepository categoryRepository) {
         this.courseRepository = courseRepository;
         this.userRepository = userRepository;
         this.courseSpecification = courseSpecification;
+        this.courseCategoryRepository = courseCategoryRepository;
+        this.categoryRepository = categoryRepository;
     }
 
-    /**
-     * Lấy tất cả khóa học với tìm kiếm và lọc động.
-     */
+    // =================================================================
+    // PUBLIC READ METHODS (API công khai, chỉ đọc)
+    // =================================================================
+
     @Transactional(readOnly = true)
-    public Page<CourseResponse> getAllCourses(int page, int size, String search, CourseLevel level, Boolean isFree) {
+    public Page<CourseResponse> getAllCourses(int page, int size, String search, CourseLevel level, Boolean isFree, Long categoryId) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-
-        // Bắt đầu xây dựng Specification bằng cách kết hợp các điều kiện
-        Specification<Course> spec = Specification.where(courseSpecification.hasStatusPublished());
-
-        if (search != null && !search.trim().isEmpty()) {
-            spec = spec.and(courseSpecification.titleOrDescriptionContains(search));
-        }
-        if (level != null) {
-            spec = spec.and(courseSpecification.hasLevel(level));
-        }
-        if (isFree != null) {
-            spec = spec.and(courseSpecification.isFree(isFree));
-        }
-
-        // Thực thi query với Specification đã được xây dựng
+        Specification<Course> spec = buildCourseSpecification(search, level, isFree, categoryId);
         Page<Course> coursesPage = courseRepository.findAll(spec, pageable);
-
-        // Tối ưu hóa N+1 query để lấy tên giảng viên
-        return mapPageToCourseResponse(coursesPage);
+        return mapPageWithInstructors(coursesPage);
     }
 
-    /**
-     * Lấy các khóa học phổ biến (trang chủ).
-     */
     @Transactional(readOnly = true)
     public List<CourseResponse> getPopularCourses(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
         List<Course> courses = courseRepository.findPopularCourses(CourseStatus.PUBLISHED, pageable);
-
-        // Tối ưu hóa N+1 query cho danh sách
-        return mapListToCourseResponse(courses);
+        return mapListWithInstructors(courses);
     }
 
-    /**
-     * Lấy các khóa học miễn phí (đã được thay thế bằng getAllCourses nhưng vẫn giữ lại để tương thích API cũ).
-     */
     @Transactional(readOnly = true)
     public Page<CourseResponse> getFreeCourses(int page, int size) {
-        // Gọi lại hàm chính với bộ lọc isFree = true
-        return getAllCourses(page, size, null, null, true);
+        return getAllCourses(page, size, null, null, true, null);
     }
 
-    /**
-     * Lấy chi tiết khóa học bằng ID.
-     */
     @Transactional(readOnly = true)
     public CourseDetailResponse getCourseById(Long id) {
-        Course course = courseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học với ID: " + id));
+        Course course = findCourseOrThrow(id);
         return mapToCourseDetailResponse(course);
     }
 
-    /**
-     * Lấy chi tiết khóa học bằng Slug.
-     */
     @Transactional(readOnly = true)
     public CourseDetailResponse getCourseBySlug(String slug) {
         Course course = courseRepository.findBySlug(slug)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học với slug: " + slug));
+                .orElseThrow(() -> new AppException("Không tìm thấy khóa học với slug: " + slug, HttpStatus.NOT_FOUND));
         return mapToCourseDetailResponse(course);
     }
 
-    // --- CÁC PHƯƠNG THỨC GHI DỮ LIỆU (CREATE, UPDATE, DELETE) ---
+    // =================================================================
+    // PROTECTED WRITE METHODS (API cần xác thực, ghi dữ liệu)
+    // =================================================================
 
     @Transactional
     public CourseResponse createCourse(CourseCreateRequest request, Long instructorId) {
         userRepository.findById(instructorId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên với ID: " + instructorId));
+                .orElseThrow(() -> new AppException("Không tìm thấy giảng viên với ID: " + instructorId, HttpStatus.NOT_FOUND));
 
         String slug = generateSlug(request.getTitle());
         if (courseRepository.findBySlug(slug).isPresent()) {
-            slug = slug + "-" + System.currentTimeMillis();
+            slug += "-" + System.currentTimeMillis();
         }
 
         Course course = new Course();
@@ -152,13 +135,9 @@ public class CourseService {
     }
 
     @Transactional
-    public CourseResponse updateCourse(Long id, CourseUpdateRequest request, Long instructorId) {
-        Course course = courseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học với ID: " + id));
-
-        if (!course.getInstructorId().equals(instructorId)) {
-            throw new BadRequestException("Bạn không có quyền cập nhật khóa học này");
-        }
+    public CourseResponse updateCourse(Long courseId, CourseUpdateRequest request, UserPrincipal currentUser) {
+        Course course = findCourseOrThrow(courseId);
+        validateOwnership(course, currentUser);
 
         if (request.getTitle() != null) {
             course.setTitle(request.getTitle());
@@ -182,62 +161,73 @@ public class CourseService {
     }
 
     @Transactional
-    public void deleteCourse(Long id, Long instructorId) {
-        Course course = courseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học với ID: " + id));
-
-        if (!course.getInstructorId().equals(instructorId)) {
-            throw new BadRequestException("Bạn không có quyền xóa khóa học này");
-        }
+    public void deleteCourse(Long courseId, UserPrincipal currentUser) {
+        Course course = findCourseOrThrow(courseId);
+        validateOwnership(course, currentUser);
         courseRepository.delete(course);
     }
 
     @Transactional
-    public CourseResponse publishCourse(Long id, Long instructorId) {
-        Course course = courseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học với ID: " + id));
-
-        if (!course.getInstructorId().equals(instructorId)) {
-            throw new BadRequestException("Bạn không có quyền publish khóa học này");
-        }
+    public CourseResponse publishCourse(Long courseId, UserPrincipal currentUser) {
+        Course course = findCourseOrThrow(courseId);
+        validateOwnership(course, currentUser);
         course.setStatus(CourseStatus.PUBLISHED);
         Course updatedCourse = courseRepository.save(course);
         return mapToCourseResponse(updatedCourse);
     }
 
-    // --- CÁC PHƯƠNG THỨC HỖ TRỢ (HELPER METHODS) ---
+    // =================================================================
+    // HELPER & MAPPING METHODS (Các phương thức hỗ trợ)
+    // =================================================================
 
-    private String generateSlug(String title) {
-        if (title == null) return "";
-        return title.toLowerCase()
-                .replaceAll("\\s+", "-")
-                .replaceAll("[^a-z0-9\\-]", "")
-                .replaceAll("-+", "-")
-                .trim();
-    }
-
-    // Tối ưu hóa cho Page<Course>
-    private Page<CourseResponse> mapPageToCourseResponse(Page<Course> coursesPage) {
-        List<Long> instructorIds = coursesPage.getContent().stream().map(Course::getInstructorId).distinct().collect(Collectors.toList());
-        Map<Long, User> instructorMap = Collections.emptyMap();
-        if (!instructorIds.isEmpty()) {
-            instructorMap = userRepository.findAllById(instructorIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
+    private Specification<Course> buildCourseSpecification(String search, CourseLevel level, Boolean isFree, Long categoryId) {
+        Specification<Course> spec = Specification.where(courseSpecification.hasStatusPublished());
+        if (search != null && !search.trim().isEmpty()) {
+            spec = spec.and(courseSpecification.titleOrDescriptionContains(search));
         }
-        Map<Long, User> finalInstructorMap = instructorMap;
-        return coursesPage.map(course -> mapToCourseResponse(course, finalInstructorMap.get(course.getInstructorId())));
+        if (level != null) {
+            spec = spec.and(courseSpecification.hasLevel(level));
+        }
+        if (isFree != null) {
+            spec = spec.and(courseSpecification.isFree(isFree));
+        }
+        if (categoryId != null && categoryId > 0) {
+            spec = spec.and(courseSpecification.hasCategory(categoryId));
+        }
+        return spec;
     }
 
-    // Tối ưu hóa cho List<Course>
-    private List<CourseResponse> mapListToCourseResponse(List<Course> courses) {
+    private Course findCourseOrThrow(Long id) {
+        return courseRepository.findById(id)
+                .orElseThrow(() -> new AppException("Không tìm thấy khóa học với ID: " + id, HttpStatus.NOT_FOUND));
+    }
+
+    private void validateOwnership(Course course, UserPrincipal currentUser) {
+        boolean isAdmin = currentUser.getAuthorities().stream().anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+        if (isAdmin) {
+            return; // Admin có toàn quyền, bỏ qua kiểm tra
+        }
+        if (!course.getInstructorId().equals(currentUser.getId())) {
+            throw new AppException("Bạn không có quyền thực hiện hành động này", HttpStatus.FORBIDDEN);
+        }
+    }
+
+    private Map<Long, User> getInstructorMap(List<Course> courses) {
+        if (courses.isEmpty()) {
+            return Collections.emptyMap();
+        }
         List<Long> instructorIds = courses.stream().map(Course::getInstructorId).distinct().collect(Collectors.toList());
-        Map<Long, User> instructorMap = Collections.emptyMap();
-        if (!instructorIds.isEmpty()) {
-            instructorMap = userRepository.findAllById(instructorIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
-        }
-        Map<Long, User> finalInstructorMap = instructorMap;
-        return courses.stream()
-                .map(course -> mapToCourseResponse(course, finalInstructorMap.get(course.getInstructorId())))
-                .collect(Collectors.toList());
+        return userRepository.findAllById(instructorIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
+    }
+
+    private Page<CourseResponse> mapPageWithInstructors(Page<Course> coursesPage) {
+        Map<Long, User> instructorMap = getInstructorMap(coursesPage.getContent());
+        return coursesPage.map(course -> mapToCourseResponse(course, instructorMap.get(course.getInstructorId())));
+    }
+
+    private List<CourseResponse> mapListWithInstructors(List<Course> courses) {
+        Map<Long, User> instructorMap = getInstructorMap(courses);
+        return courses.stream().map(course -> mapToCourseResponse(course, instructorMap.get(course.getInstructorId()))).collect(Collectors.toList());
     }
 
     private CourseResponse mapToCourseResponse(Course course, User instructor) {
@@ -272,10 +262,10 @@ public class CourseService {
         return mapToCourseResponse(course, instructor);
     }
 
-
     private CourseDetailResponse mapToCourseDetailResponse(Course course) {
         CourseDetailResponse response = new CourseDetailResponse();
-        // Copy các thuộc tính cơ bản từ course sang response
+
+        // --- 1. Map các thuộc tính trực tiếp từ Course ---
         response.setId(course.getId());
         response.setTitle(course.getTitle());
         response.setSlug(course.getSlug());
@@ -291,19 +281,18 @@ public class CourseService {
         response.setAverageRating(course.getAverageRating());
         response.setReviewCount(course.getReviewCount());
         response.setEnrollmentCount(course.getEnrollmentCount());
+        response.setCreatedAt(course.getCreatedAt());
+        response.setUpdatedAt(course.getUpdatedAt());
 
-        // Lấy thông tin giảng viên
+        // --- 2. Lấy thông tin giảng viên (Instructor) ---
         userRepository.findById(course.getInstructorId()).ifPresent(user -> {
             response.setInstructorName(user.getFullName());
             response.setInstructorAvatar(user.getAvatar());
             response.setInstructorBio(user.getBio());
         });
 
-        // Lấy chương trình học (chapters và lessons)
-        // Nhờ có @OneToMany, chúng ta chỉ cần gọi course.getChapters()
+        // --- 3. Lấy và tính toán thông tin từ chương trình học (Chapters & Lessons) ---
         response.setChapters(course.getChapters());
-
-        // Tính tổng thời lượng và tổng số bài học
         int totalLessons = 0;
         int totalDurationInSeconds = 0;
         if (course.getChapters() != null) {
@@ -317,11 +306,36 @@ public class CourseService {
             }
         }
         response.setTotalLessons(totalLessons);
-        response.setTotalDuration(totalDurationInSeconds); // Gửi về dạng giây
+        response.setTotalDuration(totalDurationInSeconds);
 
-        response.setCreatedAt(course.getCreatedAt());
-        response.setUpdatedAt(course.getUpdatedAt());
+        // --- 4. LẤY DANH SÁCH DANH MỤC (CATEGORIES) - PHẦN LOGIC MỚI ---
+        // a. Tìm tất cả các mối liên kết (CourseCategory) cho khóa học này.
+        List<CourseCategory> courseCategories = courseCategoryRepository.findByCourseId(course.getId());
+
+        // b. Nếu có mối liên kết, trích xuất ra danh sách các ID của danh mục.
+        if (courseCategories != null && !courseCategories.isEmpty()) {
+            List<Long> categoryIds = courseCategories.stream()
+                    .map(CourseCategory::getCategoryId)
+                    .collect(Collectors.toList());
+
+            // c. Thực hiện MỘT câu query duy nhất để lấy tất cả các đối tượng Category.
+            List<Category> categories = categoryRepository.findAllById(categoryIds);
+            response.setCategories(categories);
+        } else {
+            // Nếu không có danh mục nào, trả về một danh sách rỗng
+            response.setCategories(Collections.emptyList());
+        }
+        // --- KẾT THÚC PHẦN LOGIC MỚI ---
 
         return response;
+    }
+
+    private String generateSlug(String title) {
+        if (title == null) return "";
+        return title.toLowerCase()
+                .replaceAll("\\s+", "-")
+                .replaceAll("[^a-z0-9\\-]", "")
+                .replaceAll("-+", "-")
+                .trim();
     }
 }
