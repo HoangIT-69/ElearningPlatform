@@ -44,6 +44,11 @@
 			<scope>runtime</scope>
 			<optional>true</optional>
 		</dependency>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.10.1</version> <!-- Đây là phiên bản ổn định và mới nhất -->
+		</dependency>
 
 		<!-- Database -->
 		<dependency>

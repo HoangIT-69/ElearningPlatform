@@ -160,7 +160,7 @@ const HomePage = () => {
                             <option value="">Tất cả</option>
                             <option value="BEGINNER">Mới bắt đầu</option>
                             <option value="INTERMEDIATE">Trung bình</option>
-                            <option value="ADVANCED">Nâng cao</option>
+                            <option value="EXPERT">Nâng cao</option>
                         </select>
                     </div>
 

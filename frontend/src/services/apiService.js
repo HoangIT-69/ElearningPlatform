@@ -144,3 +144,46 @@ export const deleteCategory = (id) => {
 // =================================================================
 export const addCategoryToCourse = (data) => apiClient.post('/course-categories', data);
 export const removeCategoryFromCourse = (data) => apiClient.delete('/course-categories', { data });
+
+
+// User APIs - lấy tài khoản ,update profile,đổi password
+export const getUserProfile = () => apiClient.get('/users/profile');
+export const updateUserProfile = (userId, data) => apiClient.put(`/users/profile/${userId}`, data);
+export const changePassword = (userId, data) => apiClient.post(`/users/profile/${userId}/change-password`, data);
+
+
+// =================================================================
+// CART APIs (Yêu cầu đăng nhập)
+// =================================================================
+
+/** Lấy danh sách các item trong giỏ hàng của người dùng hiện tại */
+export const getMyCart = () => {
+    return apiClient.get('/cart');
+};
+
+/** Thêm một khóa học vào giỏ hàng */
+export const addToCart = (courseId) => {
+    return apiClient.post('/cart', { courseId });
+};
+
+/** Xóa một khóa học khỏi giỏ hàng */
+export const removeFromCart = (courseId) => {
+    return apiClient.delete(`/cart/${courseId}`);
+};
+
+/** Dọn dẹp toàn bộ giỏ hàng */
+export const clearCart = () => {
+    return apiClient.delete('/cart');
+};
+
+/**
+ * Tạo link thanh toán VNPay từ giỏ hàng hiện tại.
+ */
+export const createVnpayPayment = () => {
+    // Không cần gửi tham số gì cả, backend sẽ tự lấy thông tin user và giỏ hàng
+    return apiClient.get('/payment/create-payment');
+};
+
+export const getMyEnrolledCourses = () => {
+    return apiClient.get('/enrollments/my-courses');
+};

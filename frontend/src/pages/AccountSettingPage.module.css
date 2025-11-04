@@ -1,0 +1,38 @@
+.container {
+max-width: 1200px;
+margin: 2rem auto;
+display: flex;
+gap: 2rem;
+}
+
+.sidebar {
+flex-basis: 250px;
+flex-shrink: 0;
+}
+.sidebarHeader { text-align: nter; margin-bottom: 2rem; }
+.avatar { /* ... style avatar như ở Navbar ... */ }
+.sidebar ul { list-style: none; padding: 0; }
+.sidebar li { padding: 0.75rem 1rem; border-radius: 4px; }
+.sidebar li.active { background-color: #f0f0f0; font-weight: bold; }
+.sidebar li:hover { background-color: #f7f9fa; }
+
+.mainContent {
+flex-grow: 1;
+background-color: #fff;
+padding: 2rem;
+border: 1px solid #ddd;
+border-radius: 8px;
+}
+.mainContent h1 { margin-top: 0; }
+.subtitle { color: #555; margin-bottom: 2rem; }
+.formSection { border-top: 1px solid #ddd; padding-top: 2rem; margin-top: 2rem; }
+.sectionTitle { font-size: 1.2rem; margin-top: 0; }
+.inputGroup { margin-bottom: 1.5rem; }
+.inputGroup label { display: block; font-weight: bold; margin-bottom: 0.5rem; }
+.inputGroup input { width: 100%; max-width: 400px; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; }
+.emailDisplay { display: flex; align-items: center; gap: 1rem; }
+.emailDisplay span { flex-grow: 1; padding: 0.75rem; border: 1px solid #ddd; background-color: #f7f9fa; border-radius: 4px; }
+.editButton { background: none; border: 1px solid #ccc; padding: 0.5rem; border-radius: 4px; cursor: pointer; }
+.submitButton { background-color: #a435f0; color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+.success { color: green; }
+.error { color: red; }

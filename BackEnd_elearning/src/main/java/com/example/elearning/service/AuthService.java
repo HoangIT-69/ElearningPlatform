@@ -117,7 +117,8 @@ public class AuthService {
                 user.getId(),
                 user.getEmail(),
                 user.getFullName(),
-                user.getRole().name()
+                user.getRole().name(),
+                user.getAvatar()
         );
     }
 

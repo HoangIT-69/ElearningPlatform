@@ -33,7 +33,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/api/auth/**"
+                                "/api/auth/**",
+                                "/api/payment/vnpay-return"
                         ).permitAll()
 
                         // Ai cũng có thể xem (GET) khóa học VÀ DANH MỤC
@@ -50,7 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/chapters/**").authenticated()
                         .requestMatchers("/api/lessons/**").authenticated()
                         .requestMatchers("/api/course-categories/**").authenticated()
-
+                        .requestMatchers("/api/payment/create-payment").authenticated()
                         // Tất cả các request còn lại đều yêu cầu phải xác thực
                         .anyRequest().authenticated()
                 );

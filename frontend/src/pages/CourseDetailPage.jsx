@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { getCourseBySlug } from '../services/apiService';
+import { useParams, Link , useNavigate } from 'react-router-dom';
+import { getCourseBySlug , addToCart} from '../services/apiService';
 import styles from './CourseDetailPage.module.css';
+
 
 // --- Component con cho một chương (chỉ hiển thị) ---
 const ChapterItem = ({ chapter }) => {
@@ -50,6 +51,9 @@ const CourseDetailPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isPreviewing, setIsPreviewing] = useState(false);
+    const navigate = useNavigate();
+        const [isAdding, setIsAdding] = useState(false); // State cho nút "Thêm vào giỏ hàng"
+        const token = localStorage.getItem('accessToken'); // Lấy token để kiểm tra đăng nhập
 
     useEffect(() => {
         const fetchCourseDetail = async () => {
@@ -89,6 +93,31 @@ const CourseDetailPage = () => {
             return null;
         }
     };
+    const handleAddToCart = async () => {
+            // 1. Kiểm tra xem người dùng đã đăng nhập chưa
+            if (!token) {
+                alert("Vui lòng đăng nhập để thêm khóa học vào giỏ hàng.");
+                navigate('/login'); // Điều hướng đến trang đăng nhập
+                return;
+            }
+            if (!course) return;
+
+            setIsAdding(true);
+            try {
+                // 2. Gọi API để thêm vào giỏ hàng
+                await addToCart(course.id);
+                alert('Đã thêm vào giỏ hàng thành công!');
+
+                // 3. Phát ra một sự kiện toàn cục để thông báo cho Navbar cập nhật
+                window.dispatchEvent(new CustomEvent('cartUpdated'));
+
+            } catch (error) {
+                // Hiển thị lỗi từ backend (ví dụ: "Khóa học đã có trong giỏ hàng")
+                alert(error.response?.data?.message || 'Không thể thêm khóa học vào giỏ hàng.');
+            } finally {
+                setIsAdding(false);
+            }
+        };
 
     const formatTotalDuration = (seconds) => {
         if (!seconds || seconds === 0) return "Chưa cập nhật";
@@ -213,7 +242,13 @@ const CourseDetailPage = () => {
 
                         <div className={styles.cardBody}>
                             <p className={styles.cardPrice}>{course.isFree ? 'Miễn phí' : `${course.price?.toLocaleString('vi-VN')} VNĐ`}</p>
-                            <button className={styles.addToCartButton}>Thêm vào giỏ hàng</button>
+                            <button
+                                className={styles.addToCartButton}
+                                onClick={handleAddToCart}
+                                disabled={isAdding}
+                            >
+                                {isAdding ? 'Đang thêm...' : 'Thêm vào giỏ hàng'}
+                            </button>
                             <button className={styles.buyNowButton}>Mua ngay</button>
                             <div className={styles.cardIncludes}>
                                 <p><strong>Khóa học này bao gồm:</strong></p>

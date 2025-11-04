@@ -81,4 +81,6 @@ public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecif
     @Query("SELECT c FROM Course c WHERE c.status = :status " +
             "ORDER BY c.enrollmentCount DESC")
     List<Course> findPopularCourses(@Param("status") CourseStatus status, Pageable pageable);
+
+    List<Course> findAllByIdIn(List<Long> ids);
 }

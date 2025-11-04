@@ -11,30 +11,36 @@ const LoginPage = () => {
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
-        e.preventDefault(); // Ngăn form tự reload trang
+        e.preventDefault();
         setError('');
-        setLoading(true); // Bắt đầu quá trình tải, vô hiệu hóa nút bấm
+        setLoading(true);
 
         try {
             const response = await loginUser({ email, password });
+            if (response.data && response.data.success) {
+                const { accessToken, fullName, role, userId, email: userEmail, avatar } = response.data.data;
 
-            // Backend trả về cấu trúc { success, message, data: { accessToken, fullName, ... } }
-            const { accessToken, fullName, role, userId } = response.data.data;
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('userFullName', fullName);
+                localStorage.setItem('userRole', role);
+                localStorage.setItem('userId', String(userId));
+                localStorage.setItem('userEmail', userEmail);
 
-            // Lưu các thông tin cần thiết vào localStorage để sử dụng sau này
-            localStorage.setItem('accessToken', accessToken);
-            localStorage.setItem('userFullName', fullName);
-            localStorage.setItem('userRole', role);
-            localStorage.setItem('userId', userId);
+                if (avatar) {
+                    localStorage.setItem('userAvatar', avatar);
+                } else {
+                    localStorage.removeItem('userAvatar');
+                }
 
-            // Chuyển hướng người dùng về trang chủ
-            navigate('/');
-            window.location.reload(); // Tải lại toàn bộ trang để Navbar cập nhật trạng thái đăng nhập
+                navigate('/');
+                window.location.reload();
+            } else {
+                setError(response.data.message || 'Đã có lỗi xảy ra.');
+            }
         } catch (err) {
-            // Lấy thông báo lỗi từ response của backend nếu có
             setError(err.response?.data?.message || 'Email hoặc mật khẩu không đúng.');
         } finally {
-            setLoading(false); // Kết thúc quá trình tải, kích hoạt lại nút bấm
+            setLoading(false);
         }
     };
 
@@ -49,6 +55,7 @@ const LoginPage = () => {
                         <input
                             type="email" id="email"
                             value={email}
+                            // SỬA LẠI Ở ĐÂY: từ e.g.value -> e.target.value
                             onChange={(e) => setEmail(e.target.value)}
                             required
                         />
