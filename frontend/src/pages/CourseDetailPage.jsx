@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link , useNavigate } from 'react-router-dom';
-import { getCourseBySlug , addToCart} from '../services/apiService';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { getCourseBySlug, addToCart } from '../services/apiService';
 import styles from './CourseDetailPage.module.css';
-
 
 // --- Component con cho một chương (chỉ hiển thị) ---
 const ChapterItem = ({ chapter }) => {
@@ -47,17 +46,20 @@ const ChapterItem = ({ chapter }) => {
 // --- Component chính của trang ---
 const CourseDetailPage = () => {
     const { slug } = useParams();
+    const navigate = useNavigate();
     const [course, setCourse] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isPreviewing, setIsPreviewing] = useState(false);
-    const navigate = useNavigate();
-        const [isAdding, setIsAdding] = useState(false); // State cho nút "Thêm vào giỏ hàng"
-        const token = localStorage.getItem('accessToken'); // Lấy token để kiểm tra đăng nhập
+    const [isAdding, setIsAdding] = useState(false);
+    const token = localStorage.getItem('accessToken');
 
     useEffect(() => {
         const fetchCourseDetail = async () => {
+            setLoading(true);
             try {
+                // Chỉ cần gọi MỘT API duy nhất
+                // Backend sẽ tự động kiểm tra và trả về trường 'enrolled'
                 const response = await getCourseBySlug(slug);
                 if (response.data?.success) {
                     setCourse(response.data.data);
@@ -74,6 +76,34 @@ const CourseDetailPage = () => {
         fetchCourseDetail();
     }, [slug]);
 
+    const handleAddToCart = async () => {
+        if (!token) {
+            alert("Vui lòng đăng nhập để thêm khóa học vào giỏ hàng.");
+            navigate('/login');
+            return;
+        }
+        if (!course) return;
+
+        setIsAdding(true);
+        try {
+            await addToCart(course.id);
+            if (course.isFree) {
+                           // Nếu khóa học là miễn phí, backend sẽ tự động enroll
+                           // Cập nhật giao diện để hiển thị nút "Đến học"
+                           setCourse(prevCourse => ({ ...prevCourse, enrolled: true }));
+                           alert('Bạn đã đăng ký thành công khóa học miễn phí!');
+                       } else {
+                           // Nếu khóa học có tính phí, chỉ thông báo đã thêm vào giỏ
+                           alert('Đã thêm vào giỏ hàng thành công!');
+                           window.dispatchEvent(new CustomEvent('cartUpdated'));
+                       }
+        } catch (error) {
+            alert(error.response?.data?.message || 'Không thể thêm khóa học vào giỏ hàng.');
+        } finally {
+            setIsAdding(false);
+        }
+    };
+
     const getEmbedUrl = (url) => {
         if (!url) return null;
         try {
@@ -81,11 +111,11 @@ const CourseDetailPage = () => {
             let videoId;
             if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
                 videoId = urlObj.searchParams.get('v') || urlObj.pathname.split('/').pop();
-                return `https://www.youtube.com/embed/${videoId}`;
+                return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
             }
             if (urlObj.hostname.includes('vimeo.com')) {
                 videoId = urlObj.pathname.split('/').pop();
-                return `https://player.vimeo.com/video/${videoId}`;
+                return `https://player.vimeo.com/video/${videoId}?autoplay=1`;
             }
             return url;
         } catch (error) {
@@ -93,31 +123,6 @@ const CourseDetailPage = () => {
             return null;
         }
     };
-    const handleAddToCart = async () => {
-            // 1. Kiểm tra xem người dùng đã đăng nhập chưa
-            if (!token) {
-                alert("Vui lòng đăng nhập để thêm khóa học vào giỏ hàng.");
-                navigate('/login'); // Điều hướng đến trang đăng nhập
-                return;
-            }
-            if (!course) return;
-
-            setIsAdding(true);
-            try {
-                // 2. Gọi API để thêm vào giỏ hàng
-                await addToCart(course.id);
-                alert('Đã thêm vào giỏ hàng thành công!');
-
-                // 3. Phát ra một sự kiện toàn cục để thông báo cho Navbar cập nhật
-                window.dispatchEvent(new CustomEvent('cartUpdated'));
-
-            } catch (error) {
-                // Hiển thị lỗi từ backend (ví dụ: "Khóa học đã có trong giỏ hàng")
-                alert(error.response?.data?.message || 'Không thể thêm khóa học vào giỏ hàng.');
-            } finally {
-                setIsAdding(false);
-            }
-        };
 
     const formatTotalDuration = (seconds) => {
         if (!seconds || seconds === 0) return "Chưa cập nhật";
@@ -144,7 +149,7 @@ const CourseDetailPage = () => {
                         <div className={styles.breadcrumb}>
                             {course.categories.map((cat, index) => (
                                 <React.Fragment key={cat.id}>
-                                    <Link to={`/courses?categoryId=${cat.id}`}>{cat.name}</Link>
+                                    <Link to={`/?categoryId=${cat.id}`}>{cat.name}</Link>
                                     {index < course.categories.length - 1 && (
                                         <span className={styles.breadcrumbSeparator}>&gt;</span>
                                     )}
@@ -161,7 +166,6 @@ const CourseDetailPage = () => {
                             {course.instructorName}
                         </Link>
                     </div>
-                    {/* TODO: Thêm thông tin rating, số lượng học viên... */}
                 </div>
             </section>
 
@@ -220,7 +224,7 @@ const CourseDetailPage = () => {
                         {isPreviewing && videoToDisplayUrl ? (
                             <div className={styles.videoPlayerWrapper}>
                                 <iframe
-                                    src={videoToDisplayUrl + "?autoplay=1"} // Thêm autoplay
+                                    src={videoToDisplayUrl}
                                     title="Giới thiệu khóa học"
                                     frameBorder="0"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -230,7 +234,7 @@ const CourseDetailPage = () => {
                             </div>
                         ) : (
                             <div className={styles.thumbnailWrapper} onClick={() => videoToDisplayUrl && setIsPreviewing(true)}>
-                                <img src={course.thumbnail} alt={course.title} className={styles.cardThumbnail} />
+                                <img src={course.thumbnail || 'https://via.placeholder.com/400x225'} alt={course.title} className={styles.cardThumbnail} />
                                 {videoToDisplayUrl && (
                                     <>
                                         <div className={styles.playButtonOverlay}>▶️</div>
@@ -242,14 +246,21 @@ const CourseDetailPage = () => {
 
                         <div className={styles.cardBody}>
                             <p className={styles.cardPrice}>{course.isFree ? 'Miễn phí' : `${course.price?.toLocaleString('vi-VN')} VNĐ`}</p>
-                            <button
-                                className={styles.addToCartButton}
-                                onClick={handleAddToCart}
-                                disabled={isAdding}
-                            >
-                                {isAdding ? 'Đang thêm...' : 'Thêm vào giỏ hàng'}
-                            </button>
-                            <button className={styles.buyNowButton}>Mua ngay</button>
+
+                            {course.enrolled ? (
+                                <Link to={`/learn/${course.slug}`} className={styles.goToCourseButton}>
+                                    Đến học
+                                </Link>
+                            ) : (
+                                <button
+                                    className={styles.addToCartButton}
+                                    onClick={handleAddToCart}
+                                    disabled={isAdding}
+                                >
+                                    {isAdding ? 'Đang thêm...' : 'Thêm vào giỏ hàng'}
+                                </button>
+                            )}
+
                             <div className={styles.cardIncludes}>
                                 <p><strong>Khóa học này bao gồm:</strong></p>
                                 <ul>

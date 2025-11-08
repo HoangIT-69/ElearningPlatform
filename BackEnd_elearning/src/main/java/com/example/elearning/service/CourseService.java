@@ -12,11 +12,7 @@ import com.example.elearning.entity.CourseCategory;
 import com.example.elearning.enums.CourseLevel;
 import com.example.elearning.enums.CourseStatus;
 import com.example.elearning.exception.AppException; // Bạn cần tạo class Exception này
-import com.example.elearning.repository.CourseRepository;
-import com.example.elearning.repository.CourseSpecification;
-import com.example.elearning.repository.CourseCategoryRepository;
-import com.example.elearning.repository.CategoryRepository;
-import com.example.elearning.repository.UserRepository;
+import com.example.elearning.repository.*;
 import com.example.elearning.security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -25,6 +21,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,6 +56,10 @@ public class CourseService {
         this.categoryRepository = categoryRepository;
     }
 
+    @Autowired private EnrollmentRepository enrollmentRepository;
+
+
+
     // =================================================================
     // PUBLIC READ METHODS (API công khai, chỉ đọc)
     // =================================================================
@@ -84,15 +86,32 @@ public class CourseService {
 
     @Transactional(readOnly = true)
     public CourseDetailResponse getCourseById(Long id) {
-        Course course = findCourseOrThrow(id);
-        return mapToCourseDetailResponse(course);
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new AppException("Không tìm thấy khóa học", HttpStatus.NOT_FOUND));
+
+        // Tự động lấy người dùng hiện tại từ SecurityContext
+        UserPrincipal currentUser = null;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal) {
+            currentUser = (UserPrincipal) authentication.getPrincipal();
+        }
+
+        return mapToCourseDetailResponse(course, currentUser);
     }
 
     @Transactional(readOnly = true)
     public CourseDetailResponse getCourseBySlug(String slug) {
         Course course = courseRepository.findBySlug(slug)
-                .orElseThrow(() -> new AppException("Không tìm thấy khóa học với slug: " + slug, HttpStatus.NOT_FOUND));
-        return mapToCourseDetailResponse(course);
+                .orElseThrow(() -> new AppException("Không tìm thấy khóa học", HttpStatus.NOT_FOUND));
+
+        // Lấy thông tin người dùng hiện tại (nếu có)
+        UserPrincipal currentUser = null;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal) {
+            currentUser = (UserPrincipal) authentication.getPrincipal();
+        }
+
+        return mapToCourseDetailResponse(course, currentUser);
     }
 
     // =================================================================
@@ -262,7 +281,7 @@ public class CourseService {
         return mapToCourseResponse(course, instructor);
     }
 
-    private CourseDetailResponse mapToCourseDetailResponse(Course course) {
+    private CourseDetailResponse mapToCourseDetailResponse(Course course, UserPrincipal currentUser) {
         CourseDetailResponse response = new CourseDetailResponse();
 
         // --- 1. Map các thuộc tính trực tiếp từ Course ---
@@ -283,6 +302,8 @@ public class CourseService {
         response.setEnrollmentCount(course.getEnrollmentCount());
         response.setCreatedAt(course.getCreatedAt());
         response.setUpdatedAt(course.getUpdatedAt());
+        response.setId(course.getId());
+        response.setTitle(course.getTitle());
 
         // --- 2. Lấy thông tin giảng viên (Instructor) ---
         userRepository.findById(course.getInstructorId()).ifPresent(user -> {
@@ -312,6 +333,7 @@ public class CourseService {
         // a. Tìm tất cả các mối liên kết (CourseCategory) cho khóa học này.
         List<CourseCategory> courseCategories = courseCategoryRepository.findByCourseId(course.getId());
 
+
         // b. Nếu có mối liên kết, trích xuất ra danh sách các ID của danh mục.
         if (courseCategories != null && !courseCategories.isEmpty()) {
             List<Long> categoryIds = courseCategories.stream()
@@ -326,7 +348,11 @@ public class CourseService {
             response.setCategories(Collections.emptyList());
         }
         // --- KẾT THÚC PHẦN LOGIC MỚI ---
-
+        if (currentUser != null) {
+            // Nếu có người dùng đăng nhập, kiểm tra trong DB
+            boolean isEnrolled = enrollmentRepository.existsByStudentIdAndCourseId(currentUser.getId(), course.getId());
+            response.setEnrolled(isEnrolled);
+        }
         return response;
     }
 

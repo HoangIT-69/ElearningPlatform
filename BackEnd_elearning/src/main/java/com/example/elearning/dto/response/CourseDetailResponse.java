@@ -68,4 +68,6 @@ public class CourseDetailResponse {
     private Integer totalDuration;
 
     private List<Category> categories;
+
+    private boolean isEnrolled = false;
 }

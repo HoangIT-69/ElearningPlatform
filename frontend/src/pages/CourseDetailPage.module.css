@@ -182,9 +182,28 @@
     color: #fff;
     border-color: #a435f0;
 }
-.buyNowButton {
-    background-color: #fff;
-    color: #2d2f31;
+.goToCourseButton {
+    display: block; /* Để nó chiếm toàn bộ chiều rộng */
+    width: 100%;
+    text-align: center;
+    padding: 1rem;
+    border: 1px solid #2d2f31;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    text-decoration: none; /* Bỏ gạch chân của thẻ Link */
+    transition: background-color 0.2s;
+
+    /* Style giống hệt nút "Thêm vào giỏ hàng" */
+    background-color: #a435f0;
+    color: #fff;
+    border-color: #a435f0;
+}
+
+.goToCourseButton:hover {
+    background-color: #8710d8; /* Màu đậm hơn khi hover */
 }
 .cardIncludes {
     margin-top: 1.5rem;
