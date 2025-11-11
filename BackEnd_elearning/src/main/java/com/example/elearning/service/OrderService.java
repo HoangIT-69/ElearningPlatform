@@ -1,5 +1,6 @@
 package com.example.elearning.service;
 
+import com.example.elearning.dto.response.PurchaseHistoryResponse;
 import com.example.elearning.entity.Cart;
 import com.example.elearning.entity.Course;
 import com.example.elearning.entity.Order;
@@ -15,7 +16,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -66,5 +71,51 @@ public class OrderService {
 
         // 4. Lưu Order. Hibernate sẽ tự động lưu các OrderItem đi kèm.
         return orderRepository.save(newOrder);
+    }
+    @Transactional(readOnly = true)
+    public List<PurchaseHistoryResponse> getPurchaseHistory(UserPrincipal currentUser) {
+        Long userId = currentUser.getId();
+
+        // 1. Lấy tất cả các đơn hàng của user, sắp xếp theo ngày mới nhất
+        List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        if (orders.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. Tối ưu hóa: Lấy tất cả courseId từ tất cả các đơn hàng
+        List<Long> allCourseIds = orders.stream()
+                .flatMap(order -> order.getOrderItems().stream())
+                .map(OrderItem::getCourseId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 3. Query một lần để lấy tất cả thông tin khóa học cần thiết
+        Map<Long, Course> courseMap = courseRepository.findAllById(allCourseIds).stream()
+                .collect(Collectors.toMap(Course::getId, Function.identity()));
+
+        // 4. Xây dựng response
+        return orders.stream().map(order -> {
+            // Map thông tin chi tiết cho từng item trong đơn hàng
+            List<PurchaseHistoryResponse.OrderItemDetail> itemDetails = order.getOrderItems().stream().map(item -> {
+                Course course = courseMap.get(item.getCourseId());
+                if (course == null) return null;
+                return new PurchaseHistoryResponse.OrderItemDetail(
+                        course.getId(),
+                        course.getTitle(),
+                        course.getSlug(),
+                        course.getThumbnail(),
+                        item.getPrice()
+                );
+            }).filter(Objects::nonNull).collect(Collectors.toList());
+
+            // Tạo đối tượng PurchaseHistoryResponse cho mỗi đơn hàng
+            return new PurchaseHistoryResponse(
+                    order.getId(),
+                    order.getCreatedAt(),
+                    order.getTotalAmount(),
+                    order.getStatus(),
+                    itemDetails
+            );
+        }).collect(Collectors.toList());
     }
 }

@@ -75,13 +75,25 @@ public class CourseService {
     @Transactional(readOnly = true)
     public List<CourseResponse> getPopularCourses(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        List<Course> courses = courseRepository.findPopularCourses(CourseStatus.PUBLISHED, pageable);
+
+
+        List<Course> courses = courseRepository.findPopularCoursesByEnrollments(CourseStatus.PUBLISHED, pageable);
+
+
         return mapListWithInstructors(courses);
     }
 
     @Transactional(readOnly = true)
     public Page<CourseResponse> getFreeCourses(int page, int size) {
         return getAllCourses(page, size, null, null, true, null);
+    }
+
+    @Transactional
+    public void incrementEnrollmentCount(Long courseId) {
+        courseRepository.findById(courseId).ifPresent(course -> {
+            course.setEnrollmentCount(course.getEnrollmentCount() + 1);
+            courseRepository.save(course);
+        });
     }
 
     @Transactional(readOnly = true)

@@ -1,12 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllCourses, getCategoryTree } from '../services/apiService';
+import { getAllCourses, getCategoryTree, getPopularCourses } from '../services/apiService';
 import styles from './HomePage.module.css';
 
+// Import thư viện slider và CSS của nó
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+
 // --- Component con cho một dòng lọc danh mục ---
-// Component này không cần thay đổi, nó đã hoạt động đúng.
+
+const StarRating = ({ rating }) => {
+    const fullStars = Math.round(rating); // Làm tròn đến sao gần nhất
+    const emptyStars = 5 - fullStars;
+    return (
+        <div className={styles.starRating}>
+            {[...Array(fullStars)].map((_, i) => <span key={`full_${i}`} className={styles.starFilled}>★</span>)}
+            {[...Array(emptyStars)].map((_, i) => <span key={`empty_${i}`} className={styles.starEmpty}>★</span>)}
+        </div>
+    );
+};
 const CategoryFilterItem = ({ category, onSelect, selectedCategoryId }) => {
-    // Logic kiểm tra xem category cha hoặc một trong các con của nó có đang được chọn hay không
     const isParentSelected = selectedCategoryId === category.id;
     const isChildSelected = category.children.some(child => child.id === selectedCategoryId);
 
@@ -19,7 +33,6 @@ const CategoryFilterItem = ({ category, onSelect, selectedCategoryId }) => {
                     name="categoryFilter"
                     value={category.id}
                     onChange={() => onSelect(category.id)}
-                    // Radio button sẽ được check nếu chính nó hoặc một trong các con của nó được chọn
                     checked={isParentSelected || isChildSelected}
                 />
                 <label htmlFor={`cat-${category.id}`}>{category.name}</label>
@@ -41,13 +54,65 @@ const CategoryFilterItem = ({ category, onSelect, selectedCategoryId }) => {
     );
 };
 
+// --- Component con cho Slider Khóa học Phổ biến ---
+const PopularCoursesSlider = ({ courses }) => {
+    const settings = {
+        dots: true,
+        infinite: courses.length > 4, // Chỉ lặp lại nếu có đủ item
+        speed: 500,
+        slidesToShow: 4,
+        slidesToScroll: 1,
+        autoplay: true,
+        autoplaySpeed: 3000,
+        responsive: [
+            { breakpoint: 1280, settings: { slidesToShow: 3 } },
+            { breakpoint: 768, settings: { slidesToShow: 2 } },
+            { breakpoint: 480, settings: { slidesToShow: 1 } }
+        ]
+    };
+
+    return (
+        <div className={styles.sliderContainer}>
+            <h2 className={styles.sectionTitle}>Các khóa học phổ biến</h2>
+            <Slider {...settings}>
+                {courses.map(course => (
+                    <div key={course.id} className={styles.sliderItem}>
+                        <Link to={`/course/${course.slug}`} className={styles.courseCardLink}>
+                            <div className={styles.courseCard}>
+                                <img className={styles.thumbnail} src={course.thumbnail || 'https://via.placeholder.com/400x225'} alt={course.title} />
+                                <div className={styles.cardContent}>
+                                    <h3 className={styles.courseTitle}>{course.title}</h3>
+                                    <p className={styles.instructorName}>
+                                        Giảng viên: {course.instructorName || 'Chưa cập nhật'}
+                                    </p>
+                                     <div className={styles.courseStats}>
+                                         <span className={styles.ratingValue}>{course.averageRating.toFixed(1)}</span>
+                                         <StarRating rating={course.averageRating} />
+                                         <span className={styles.reviewCount}>({course.reviewCount})</span>
+                                     </div>
+                                    <div className={styles.priceContainer}>
+                                        <span className={styles.price}>
+                                            {course.isFree ? 'Miễn phí' : `${course.price.toLocaleString('vi-VN')} VNĐ`}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </Link>
+                    </div>
+                ))}
+            </Slider>
+        </div>
+    );
+};
+
 
 // --- Component HomePage chính ---
 const HomePage = () => {
     const [courses, setCourses] = useState([]);
+    const [popularCourses, setPopularCourses] = useState([]);
+    const [categoryTree, setCategoryTree] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [categoryTree, setCategoryTree] = useState([]);
 
     const [filters, setFilters] = useState({
         page: 0,
@@ -60,22 +125,26 @@ const HomePage = () => {
 
     const [pageInfo, setPageInfo] = useState({ totalPages: 0, totalElements: 0 });
 
-    // Lấy toàn bộ cây danh mục một lần duy nhất
+    // Lấy dữ liệu ban đầu (danh mục VÀ khóa học phổ biến)
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                const categoryResponse = await getCategoryTree();
-                if (categoryResponse.data?.success) {
-                    setCategoryTree(categoryResponse.data.data);
-                }
+                const [categoryRes, popularRes] = await Promise.all([
+                    getCategoryTree(),
+                    getPopularCourses(8) // Lấy 8 khóa học phổ biến nhất
+                ]);
+
+                if (categoryRes.data?.success) setCategoryTree(categoryRes.data.data);
+                if (popularRes.data?.success) setPopularCourses(popularRes.data.data);
+
             } catch (error) {
-                console.error("Lỗi khi tải cây danh mục:", error);
+                console.error("Lỗi khi tải dữ liệu ban đầu:", error);
             }
         };
         fetchInitialData();
     }, []);
 
-    // Hàm gọi API lấy khóa học, được tối ưu hóa với useCallback
+    // Hàm gọi API lấy khóa học theo bộ lọc
     const fetchCourses = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -104,11 +173,7 @@ const HomePage = () => {
     }, [fetchCourses]);
 
     const handleCategorySelect = (categoryId) => {
-        setFilters(prev => ({
-            ...prev,
-            categoryId: prev.categoryId === categoryId ? '' : categoryId,
-            page: 0
-        }));
+        setFilters(prev => ({ ...prev, categoryId: prev.categoryId === categoryId ? '' : categoryId, page: 0 }));
     };
 
     const handleFilterChange = (e) => {
@@ -131,6 +196,8 @@ const HomePage = () => {
                     className={styles.mainSearchInput}
                 />
             </div>
+
+            {popularCourses.length > 0 && <PopularCoursesSlider courses={popularCourses} />}
 
             <div className={styles.filterAndContent}>
                 <aside className={styles.filterSidebar}>
@@ -160,7 +227,7 @@ const HomePage = () => {
                             <option value="">Tất cả</option>
                             <option value="BEGINNER">Mới bắt đầu</option>
                             <option value="INTERMEDIATE">Trung bình</option>
-                            <option value="EXPERT">Nâng cao</option>
+                            <option value="ADVANCED">Nâng cao</option>
                         </select>
                     </div>
 
@@ -175,6 +242,7 @@ const HomePage = () => {
                 </aside>
 
                 <main className={styles.contentArea}>
+                    <h2 className={styles.sectionTitle}>Tất cả khóa học</h2>
                     {loading ? <div className={styles.message}>Đang tìm kiếm...</div> :
                         error ? <div className={`${styles.message} ${styles.error}`}>{error}</div> :
                         courses.length > 0 ? (
@@ -188,6 +256,11 @@ const HomePage = () => {
                                                 <p className={styles.instructorName}>
                                                     Giảng viên: {course.instructorName || 'Chưa cập nhật'}
                                                 </p>
+                                                <div className={styles.courseStats}>
+                                                                                         <span className={styles.ratingValue}>{course.averageRating.toFixed(1)}</span>
+                                                                                         <StarRating rating={course.averageRating} />
+                                                                                         <span className={styles.reviewCount}>({course.reviewCount})</span>
+                                                                                     </div>
                                                 <div className={styles.priceContainer}>
                                                     <span className={styles.price}>
                                                         {course.isFree ? 'Miễn phí' : `${course.price.toLocaleString('vi-VN')} VNĐ`}

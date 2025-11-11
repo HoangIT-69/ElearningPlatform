@@ -225,3 +225,70 @@
     border-color: #0056d2;
     box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
 }
+
+.sliderContainer {
+    margin-bottom: 3rem;
+}
+
+.sectionTitle {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+}
+
+/* Tinh chỉnh cho các item trong slider */
+.sliderItem {
+    padding: 0 0.75rem; /* Tạo khoảng cách giữa các card */
+}
+
+/* Ghi đè một vài style của react-slick để đẹp hơn */
+.sliderContainer .slick-dots li button:before {
+    font-size: 10px;
+    color: #a435f0;
+}
+.sliderContainer .slick-dots li.slick-active button:before {
+    color: #a435f0;
+}
+
+.courseStats {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+    color: #505050;
+}
+
+.ratingValue {
+    font-weight: bold;
+    color: #b4690e; /* Màu cam đậm cho số rating */
+}
+
+.starRating {
+    display: flex;
+    gap: 0.1rem;
+    font-size: 0.9rem; /* Chỉnh kích thước sao cho phù hợp */
+}
+
+.starFilled {
+    color: #f3ca8c; /* Màu vàng của sao */
+}
+
+.starEmpty {
+    color: #ccc;
+}
+
+.reviewCount {
+    font-size: 0.8rem;
+}
+/* -------------------------------------- */
+
+.priceContainer {
+    margin-top: auto;
+}
+
+.price {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #2d2f31;
+}

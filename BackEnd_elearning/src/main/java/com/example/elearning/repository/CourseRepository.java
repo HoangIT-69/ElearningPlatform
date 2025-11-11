@@ -68,19 +68,23 @@ public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecif
      * @param pageable Giới hạn số lượng kết quả (ví dụ: PageRequest.of(0, 10) để lấy top 10).
      * @return Danh sách khóa học được đánh giá cao.
      */
-    @Query("SELECT c FROM Course c WHERE c.status = :status " +
-            "ORDER BY c.averageRating DESC, c.enrollmentCount DESC")
-    List<Course> findTopRatedCourses(@Param("status") CourseStatus status, Pageable pageable);
+//    @Query("SELECT c FROM Course c WHERE c.status = :status " +
+//            "ORDER BY c.averageRating DESC, c.enrollmentCount DESC")
+//    List<Course> findTopRatedCourses(@Param("status") CourseStatus status, Pageable pageable);
 
     /**
-     * Tìm các khóa học phổ biến nhất (nhiều người đăng ký nhất).
-     * @param status Chỉ tìm trong các khóa học có trạng thái này.
-     * @param pageable Giới hạn số lượng kết quả.
-     * @return Danh sách khóa học phổ biến.
+     * Tìm các khóa học phổ biến nhất dựa trên số lượng đăng ký thực tế từ bảng Enrollments.
+     * @param status Chỉ tìm trong các khóa học có trạng thái này (ví dụ: PUBLISHED).
+     * @param pageable Giới hạn số lượng kết quả (ví dụ: PageRequest.of(0, 8) để lấy 8 khóa học đầu).
+     * @return Danh sách các khóa học phổ biến.
      */
-    @Query("SELECT c FROM Course c WHERE c.status = :status " +
-            "ORDER BY c.enrollmentCount DESC")
-    List<Course> findPopularCourses(@Param("status") CourseStatus status, Pageable pageable);
+    @Query("SELECT c " +
+            "FROM Course c " +
+            "JOIN Enrollment e ON c.id = e.courseId " + // Kết nối với bảng Enrollment
+            "WHERE c.status = :status " +
+            "GROUP BY c.id " + // Nhóm theo từng khóa học
+            "ORDER BY COUNT(e.id) DESC") // Sắp xếp theo số lượng enrollment giảm dần
+    List<Course> findPopularCoursesByEnrollments(@Param("status") CourseStatus status, Pageable pageable);
 
     List<Course> findAllByIdIn(List<Long> ids);
 }

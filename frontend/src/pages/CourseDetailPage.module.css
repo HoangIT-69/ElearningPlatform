@@ -273,3 +273,118 @@
 /* --- Các thông báo --- */
 .message { text-align: center; padding: 3rem; font-size: 1.2rem; color: #555; }
 .error { color: #c62828; font-weight: bold; }
+
+.courseMetaHero {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    color: #f0f0f0;
+}
+.bestsellerTag {
+    background-color: #eceb98;
+    color: #3d3c0a;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+.ratingValue {
+    font-weight: bold;
+    color: #f3ca8c;
+}
+.starRating {
+    display: flex;
+}
+.starFilled, .starHalf {
+    color: #f3ca8c;
+}
+.starEmpty {
+    color: #777;
+}
+.ratingCount {
+    color: #c0c4fc;
+    text-decoration: underline;
+}
+.reviewForm {
+    border: 1px solid #d1d7dc;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-radius: 4px;
+    background-color: #f7f9fa;
+}
+.reviewForm h4 {
+    margin-top: 0;
+}
+
+.starRatingInput {
+    margin-bottom: 1rem;
+}
+.starRatingInput .starFilled, .starRatingInput .starEmpty, .starRatingInput .starHalf {
+    font-size: 2rem; /* Sao to hơn để dễ click */
+    cursor: pointer;
+}
+
+.reviewTextarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.reviewList {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.reviewItem {
+    display: flex;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #d1d7dc;
+}
+.reviewItem:last-child {
+    border-bottom: none;
+}
+
+.reviewAuthor {
+    flex-shrink: 0;
+    width: 60px; /* Cố định độ rộng cho cột author */
+    text-align: center;
+}
+
+.authorAvatar,
+.authorAvatarImg {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin: 0 auto 0.5rem auto; /* Căn giữa và tạo khoảng cách dưới */
+    display: flex; /* Dùng flex để căn giữa chữ cái */
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    object-fit: cover; /* Đảm bảo ảnh không bị méo */
+}
+
+.authorAvatar {
+    background-color: #2d2f31;
+    color: white;
+}
+
+.authorName {
+    font-size: 0.9rem;
+    font-weight: bold;
+    word-wrap: break-word; /* Cho phép xuống dòng nếu tên quá dài */
+}
+
+.reviewContent .starRating {
+    margin-bottom: 0.5rem;
+}
+.reviewComment {
+    margin: 0;
+    line-height: 1.6;
+}

@@ -31,6 +31,7 @@ public class PaymentService {
     @Autowired private OrderRepository orderRepository;
     @Autowired private EnrollmentRepository enrollmentRepository;
     @Autowired private CartRepository cartRepository;
+    @Autowired private CourseService courseService;
 
     @Transactional
     public String createVnpayPayment(HttpServletRequest request, UserPrincipal currentUser) throws UnsupportedEncodingException {
@@ -116,6 +117,7 @@ public class PaymentService {
                     Enrollment enrollment = new Enrollment(order.getUserId(), item.getCourseId());
                     enrollmentRepository.save(enrollment);
                 }
+                courseService.incrementEnrollmentCount(item.getCourseId());
             });
 
             Transaction transaction = new Transaction();
@@ -203,7 +205,13 @@ public class PaymentService {
 
             orderRepository.save(order);
             transactionRepository.save(transaction);
-
+            order.getOrderItems().forEach(item -> {
+                if (!enrollmentRepository.existsByStudentIdAndCourseId(order.getUserId(), item.getCourseId())) {
+                    Enrollment enrollment = new Enrollment(order.getUserId(), item.getCourseId());
+                    enrollmentRepository.save(enrollment);
+                }
+                courseService.incrementEnrollmentCount(item.getCourseId());
+            });
             return true; // Báo thành công
         } else {
             // Thanh toán thất bại

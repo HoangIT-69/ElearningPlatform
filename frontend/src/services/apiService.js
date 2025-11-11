@@ -71,6 +71,14 @@ export const getCourseBySlug = (slug) => {
     return apiClient.get(`/courses/slug/${slug}`);
 };
 
+/**
+ * Lấy danh sách các khóa học phổ biến.
+ * @param {number} limit - Số lượng khóa học muốn lấy (mặc định là 8).
+ */
+export const getPopularCourses = (limit = 8) => {
+    return apiClient.get(`/courses/popular?limit=${limit}`);
+};
+
 
 // --- Các API cần xác thực (Protected) ---
 // Interceptor sẽ tự động thêm token cho các hàm này
@@ -186,4 +194,31 @@ export const createVnpayPayment = () => {
 
 export const getMyEnrolledCourses = () => {
     return apiClient.get('/enrollments/my-courses');
+};
+
+// =================================================================
+// REVIEW APIs (Yêu cầu đăng nhập)
+// =================================================================
+
+/**
+ * Gửi một đánh giá mới hoặc cập nhật một đánh giá đã có cho một khóa học.
+ * @param {object} reviewData - Dữ liệu đánh giá { courseId, rating, comment }
+ * @returns {Promise}
+ */
+export const postReview = (reviewData) => {
+    return apiClient.post('/reviews', reviewData);
+};
+
+/**
+ * Lấy tất cả các đánh giá của một khóa học.
+ * @param {number} courseId - ID của khóa học
+ * @returns {Promise}
+ */
+export const getReviewsForCourse = (courseId) => {
+    return apiClient.get(`/reviews/course/${courseId}`);
+};
+
+/** Lấy lịch sử mua hàng */
+export const getPurchaseHistory = () => {
+    return apiClient.get('/orders/my-history');
 };
