@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
@@ -24,4 +25,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
      * @return true nếu đã đăng ký, ngược lại là false.
      */
     boolean existsByStudentIdAndCourseId(Long studentId, Long courseId);
+
+    Optional<Enrollment> findByStudentIdAndCourseId(Long userId, Long courseId);
+
 }

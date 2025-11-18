@@ -15,6 +15,7 @@ import LearnPage from './pages/LearnPage';
 import Navbar from './components/Navbar';
 import PurchaseHistoryPage from './pages/PurchaseHistoryPage';
 
+
 // --- TẠO MỘT COMPONENT LAYOUT CHUNG ---
 // Component này sẽ chứa Navbar và render các trang con
 const MainLayout = ({ children }) => {
@@ -53,7 +54,9 @@ function App() {
               <Route path="/my-learning" element={<MyLearningPage />} />
               <Route path="/payment-success" element={<PaymentSuccessPage />} />
               <Route path="/payment-failed" element={<PaymentFailedPage />} />
-               <Route path="/purchase-history" element={<PurchaseHistoryPage />} />
+              <Route path="/purchase-history" element={<PurchaseHistoryPage />} />
+
+
               {/* Thêm một route bắt lỗi 404 nếu muốn */}
               <Route path="*" element={<div>404 - Trang không tồn tại</div>} />
             </Routes>

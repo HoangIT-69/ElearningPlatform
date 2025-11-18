@@ -185,27 +185,27 @@ const CourseDetailPage = () => {
     const [isAdding, setIsAdding] = useState(false);
     const token = localStorage.getItem('accessToken');
 
-    useEffect(() => {
-        const fetchCourseDetail = async () => {
-            setLoading(true);
-            try {
-                // Chỉ cần gọi MỘT API duy nhất
-                // Backend sẽ tự động kiểm tra và trả về trường 'enrolled'
-                const response = await getCourseBySlug(slug);
-                if (response.data?.success) {
-                    setCourse(response.data.data);
-                } else {
-                    setError('Không tìm thấy khóa học.');
-                }
-            } catch (err) {
-                setError('Lỗi kết nối đến server.');
-                console.error("Lỗi khi tải chi tiết khóa học:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchCourseDetail();
-    }, [slug]);
+   useEffect(() => {
+           const fetchCourseDetail = async () => {
+               setLoading(true);
+               setError('');
+               try {
+                   // API này đã chứa logic kiểm tra 'enrolled' ở backend
+                   const response = await getCourseBySlug(slug);
+                   if (response.data?.success) {
+                       setCourse(response.data.data);
+                   } else {
+                       setError('Không tìm thấy khóa học.');
+                   }
+               } catch (err) {
+                   setError('Lỗi kết nối đến server.');
+                   console.error("Lỗi khi tải chi tiết khóa học:", err);
+               } finally {
+                   setLoading(false);
+               }
+           };
+           fetchCourseDetail();
+       }, [slug]);
 
    const handleAddToCart = async () => {
        // 1. Kiểm tra xem người dùng đã đăng nhập chưa

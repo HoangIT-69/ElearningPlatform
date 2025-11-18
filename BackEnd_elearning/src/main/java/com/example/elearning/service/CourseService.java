@@ -4,11 +4,7 @@ import com.example.elearning.dto.request.CourseCreateRequest;
 import com.example.elearning.dto.request.CourseUpdateRequest;
 import com.example.elearning.dto.response.CourseDetailResponse;
 import com.example.elearning.dto.response.CourseResponse;
-import com.example.elearning.entity.Chapter;
-import com.example.elearning.entity.Course;
-import com.example.elearning.entity.User;
-import com.example.elearning.entity.Category;
-import com.example.elearning.entity.CourseCategory;
+import com.example.elearning.entity.*;
 import com.example.elearning.enums.CourseLevel;
 import com.example.elearning.enums.CourseStatus;
 import com.example.elearning.exception.AppException; // Bạn cần tạo class Exception này
@@ -27,9 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -41,6 +35,7 @@ public class CourseService {
     private final CourseSpecification courseSpecification;
     private final CourseCategoryRepository courseCategoryRepository;
     private final CategoryRepository categoryRepository;
+    private final LessonProgressRepository  lessonProgressRepository;
 
     // 2. Cập nhật constructor để nhận tất cả dependency
     @Autowired
@@ -48,12 +43,13 @@ public class CourseService {
                          UserRepository userRepository,
                          CourseSpecification courseSpecification,
                          CourseCategoryRepository courseCategoryRepository,
-                         CategoryRepository categoryRepository) {
+                         CategoryRepository categoryRepository ,  LessonProgressRepository lessonProgressRepository) {
         this.courseRepository = courseRepository;
         this.userRepository = userRepository;
         this.courseSpecification = courseSpecification;
         this.courseCategoryRepository = courseCategoryRepository;
         this.categoryRepository = categoryRepository;
+        this.lessonProgressRepository= lessonProgressRepository;
     }
 
     @Autowired private EnrollmentRepository enrollmentRepository;
@@ -207,6 +203,32 @@ public class CourseService {
         return mapToCourseResponse(updatedCourse);
     }
 
+    // File: CourseService.java
+// ...
+
+    @Transactional(readOnly = true)
+    public CourseDetailResponse getEnrolledCourseContent(String slug, UserPrincipal currentUser) {
+        Long userId = currentUser.getId();
+
+        // 1. Lấy thông tin khóa học
+        Course course = courseRepository.findBySlug(slug)
+                .orElseThrow(() -> new AppException("Không tìm thấy khóa học", HttpStatus.NOT_FOUND));
+
+        // 2. **KIỂM TRA QUYỀN TRUY CẬP**
+        boolean isEnrolled = enrollmentRepository.existsByStudentIdAndCourseId(userId, course.getId());
+
+        // Kiểm tra thêm nếu là Admin hoặc Instructor của khóa học thì cũng cho vào
+        boolean isAdmin = currentUser.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ADMIN"));
+        boolean isInstructorOfCourse = course.getInstructorId().equals(userId);
+
+        if (!isEnrolled && !isAdmin && !isInstructorOfCourse) {
+            throw new AppException("Bạn không có quyền truy cập vào nội dung khóa học này", HttpStatus.FORBIDDEN);
+        }
+
+        // 3. Nếu có quyền, trả về thông tin chi tiết
+        return mapToCourseDetailResponse(course, currentUser); // Tái sử dụng hàm map cũ
+    }
+
     // =================================================================
     // HELPER & MAPPING METHODS (Các phương thức hỗ trợ)
     // =================================================================
@@ -314,8 +336,6 @@ public class CourseService {
         response.setEnrollmentCount(course.getEnrollmentCount());
         response.setCreatedAt(course.getCreatedAt());
         response.setUpdatedAt(course.getUpdatedAt());
-        response.setId(course.getId());
-        response.setTitle(course.getTitle());
 
         // --- 2. Lấy thông tin giảng viên (Instructor) ---
         userRepository.findById(course.getInstructorId()).ifPresent(user -> {
@@ -341,30 +361,36 @@ public class CourseService {
         response.setTotalLessons(totalLessons);
         response.setTotalDuration(totalDurationInSeconds);
 
-        // --- 4. LẤY DANH SÁCH DANH MỤC (CATEGORIES) - PHẦN LOGIC MỚI ---
-        // a. Tìm tất cả các mối liên kết (CourseCategory) cho khóa học này.
+        // --- 4. Lấy danh sách danh mục (Categories) ---
         List<CourseCategory> courseCategories = courseCategoryRepository.findByCourseId(course.getId());
-
-
-        // b. Nếu có mối liên kết, trích xuất ra danh sách các ID của danh mục.
         if (courseCategories != null && !courseCategories.isEmpty()) {
             List<Long> categoryIds = courseCategories.stream()
                     .map(CourseCategory::getCategoryId)
                     .collect(Collectors.toList());
-
-            // c. Thực hiện MỘT câu query duy nhất để lấy tất cả các đối tượng Category.
             List<Category> categories = categoryRepository.findAllById(categoryIds);
             response.setCategories(categories);
         } else {
-            // Nếu không có danh mục nào, trả về một danh sách rỗng
             response.setCategories(Collections.emptyList());
         }
-        // --- KẾT THÚC PHẦN LOGIC MỚI ---
+
+        // --- 5. KIỂM TRA TRẠNG THÁI ĐĂNG KÝ VÀ TIẾN ĐỘ HỌC ---
         if (currentUser != null) {
-            // Nếu có người dùng đăng nhập, kiểm tra trong DB
-            boolean isEnrolled = enrollmentRepository.existsByStudentIdAndCourseId(currentUser.getId(), course.getId());
-            response.setEnrolled(isEnrolled);
+            // a. Kiểm tra xem người dùng đã đăng ký khóa học này chưa
+            Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentIdAndCourseId(currentUser.getId(), course.getId());
+
+            if (enrollmentOpt.isPresent()) {
+                // Nếu đã đăng ký:
+                response.setEnrolled(true);
+
+                // b. Lấy danh sách các bài học đã hoàn thành
+                Enrollment enrollment = enrollmentOpt.get();
+                List<LessonProgress> progressList = lessonProgressRepository.findByEnrollmentIdAndCompleted(enrollment.getId(), true);
+                Set<Long> completedIds = progressList.stream().map(LessonProgress::getLessonId).collect(Collectors.toSet());
+                response.setCompletedLessonIds(completedIds);
+            }
+            // Nếu enrollmentOpt rỗng, isEnrolled và completedLessonIds sẽ giữ giá trị mặc định (false và set rỗng)
         }
+
         return response;
     }
 

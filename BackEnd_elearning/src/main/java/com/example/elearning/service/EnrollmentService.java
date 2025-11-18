@@ -1,12 +1,11 @@
 package com.example.elearning.service;
 
 import com.example.elearning.dto.response.CourseResponse;
+import com.example.elearning.entity.Chapter;
 import com.example.elearning.entity.Course;
 import com.example.elearning.entity.Enrollment;
 import com.example.elearning.entity.User;
-import com.example.elearning.repository.CourseRepository;
-import com.example.elearning.repository.EnrollmentRepository;
-import com.example.elearning.repository.UserRepository;
+import com.example.elearning.repository.*;
 import com.example.elearning.security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,7 +23,9 @@ public class EnrollmentService {
     @Autowired private EnrollmentRepository enrollmentRepository;
     @Autowired private CourseRepository courseRepository;
     @Autowired private UserRepository userRepository;
-    @Autowired private MappingHelperService mappingHelper; // <-- Đảm bảo đã inject
+    @Autowired private LessonRepository lessonRepository;
+    @Autowired private LessonProgressRepository lessonProgressRepository;
+    @Autowired private MappingHelperService mappingHelper;
 
     @Transactional(readOnly = true)
     public List<CourseResponse> getEnrolledCourses(UserPrincipal currentUser) {
@@ -36,27 +37,49 @@ public class EnrollmentService {
             return Collections.emptyList();
         }
 
-        // 2. Trích xuất danh sách các courseId
-        List<Long> courseIds = enrollments.stream()
-                .map(Enrollment::getCourseId)
-                .collect(Collectors.toList());
-
-        // 3. Lấy thông tin chi tiết của tất cả các khóa học đó
+        // 2. Lấy thông tin chi tiết các khóa học tương ứng
+        List<Long> courseIds = enrollments.stream().map(Enrollment::getCourseId).collect(Collectors.toList());
         List<Course> enrolledCourses = courseRepository.findAllById(courseIds);
 
-        // 4. Tối ưu hóa N+1 query để lấy tên giảng viên
+        // 3. Tối ưu hóa: Lấy thông tin giảng viên
         List<Long> instructorIds = enrolledCourses.stream().map(Course::getInstructorId).distinct().collect(Collectors.toList());
-        Map<Long, User> instructorMap = Collections.emptyMap();
-        if (!instructorIds.isEmpty()) {
-            instructorMap = userRepository.findAllById(instructorIds).stream()
-                    .collect(Collectors.toMap(User::getId, Function.identity()));
-        }
+        Map<Long, User> instructorMap = userRepository.findAllById(instructorIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
 
-        // --- SỬA LẠI LOGIC MAPPING Ở ĐÂY ---
-        // 5. Chuyển đổi sang CourseResponse bằng cách sử dụng lại helper service
-        Map<Long, User> finalInstructorMap = instructorMap;
-        return enrolledCourses.stream()
-                .map(course -> mappingHelper.mapToCourseResponse(course, finalInstructorMap.get(course.getInstructorId())))
-                .collect(Collectors.toList());
+        // 4. Chuyển đổi Enrollment thành Map để tra cứu nhanh
+        Map<Long, Enrollment> enrollmentMap = enrollments.stream()
+                .collect(Collectors.toMap(Enrollment::getCourseId, Function.identity()));
+
+        // 5. Chuyển đổi sang CourseResponse và tính toán tiến độ
+        return enrolledCourses.stream().map(course -> {
+            User instructor = instructorMap.get(course.getInstructorId());
+            CourseResponse response = mappingHelper.mapToCourseResponse(course, instructor);
+
+            // TÍNH TOÁN TIẾN ĐỘ MỘT CÁCH AN TOÀN
+            Enrollment enrollment = enrollmentMap.get(course.getId());
+            if (enrollment != null) {
+
+                // a. Lấy tổng số bài học một cách an toàn
+                long totalLessons = 0;
+                // KIỂM TRA NULL Ở ĐÂY
+                if (course.getChapters() != null && !course.getChapters().isEmpty()) {
+                    List<Long> chapterIds = course.getChapters().stream()
+                            .map(Chapter::getId)
+                            .collect(Collectors.toList());
+                    totalLessons = lessonRepository.countByChapterIdIn(chapterIds);
+                }
+
+                if (totalLessons > 0) {
+                    // b. Đếm số bài đã hoàn thành
+                    long completedLessons = lessonProgressRepository.countByEnrollmentIdAndCompleted(enrollment.getId(), true);
+
+                    // c. Tính toán và gán %
+                    int progress = (int) Math.round(((double) completedLessons / totalLessons) * 100);
+                    response.setProgress(progress);
+                }
+            }
+
+            return response;
+        }).collect(Collectors.toList());
     }
 }

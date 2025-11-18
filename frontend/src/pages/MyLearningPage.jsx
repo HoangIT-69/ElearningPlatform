@@ -37,17 +37,17 @@ const MyLearningPage = () => {
             ) : (
                 <div className={styles.courseGrid}>
                     {courses.map(course => (
-                        // Link sẽ trỏ đến trang "học" (learning page) của khóa học
                         <Link to={`/learn/${course.slug}`} key={course.id} className={styles.courseCard}>
                             <img className={styles.thumbnail} src={course.thumbnail} alt={course.title} />
                             <div className={styles.cardContent}>
                                 <h3 className={styles.courseTitle}>{course.title}</h3>
                                 <p className={styles.instructorName}>{course.instructorName}</p>
+                                {/* --- SỬA LẠI PHẦN NÀY --- */}
                                 <div className={styles.progressBar}>
-                                    <div className={styles.progress} style={{ width: `0%` }}></div> 
-                                    {/* TODO: Lấy progress từ API */}
+                                    {/* Giả sử API trả về course.progress */}
+                                    <div className={styles.progress} style={{ width: `${course.progress || 0}%` }}></div>
                                 </div>
-                                <span className={styles.progressText}>0% hoàn thành</span>
+                                <span className={styles.progressText}>{course.progress || 0}% hoàn thành</span>
                             </div>
                         </Link>
                     ))}

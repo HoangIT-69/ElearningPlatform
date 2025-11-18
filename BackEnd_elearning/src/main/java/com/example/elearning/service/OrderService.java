@@ -77,7 +77,7 @@ public class OrderService {
         Long userId = currentUser.getId();
 
         // 1. Lấy tất cả các đơn hàng của user, sắp xếp theo ngày mới nhất
-        List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        List<Order> orders = orderRepository.findByUserIdAndStatusOrderByCreatedAtDesc(userId, "COMPLETED");
         if (orders.isEmpty()) {
             return Collections.emptyList();
         }

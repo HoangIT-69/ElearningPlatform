@@ -24,8 +24,11 @@ public class Enrollment {
     @Column(nullable = false, length = 20)
     private EnrollmentStatus status = EnrollmentStatus.ACTIVE;
 
+    // --- SỬA LẠI Ở ĐÂY ---
+    // Đảm bảo cột này khớp với DB và có giá trị mặc định
     @Column(nullable = false)
     private Integer progress = 0;
+    // --------------------
 
     @Column(name = "last_accessed_at")
     private LocalDateTime lastAccessedAt;
@@ -50,8 +53,11 @@ public class Enrollment {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // --- SỬA LẠI CONSTRUCTOR ---
     public Enrollment(Long studentId, Long courseId) {
         this.studentId = studentId;
         this.courseId = courseId;
+        this.progress = 0; // <-- QUAN TRỌNG: Gán giá trị mặc định ở đây
+        this.status = EnrollmentStatus.ACTIVE;
     }
 }

@@ -68,7 +68,7 @@ public class PaymentService {
             vnp_Params.put("vnp_Locale", "vn");
 
             // URL này là nơi VNPay sẽ gửi kết quả về cho backend của bạn
-            String returnUrl = "https://darlene-chlamydeous-tanika.ngrok-free.dev/api/payment/vnpay-return";
+            String returnUrl = "http://localhost:8080/api/payment/vnpay-return";
             vnp_Params.put("vnp_ReturnUrl", returnUrl);
             vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
@@ -215,7 +215,7 @@ public class PaymentService {
             return true; // Báo thành công
         } else {
             // Thanh toán thất bại
-            System.out.println("Payment failed for Order ID: " + orderIdStr);
+            System.out.println("Payment failed for Order ID: " + orderIdStr + " with response code: " + responseCode);
             order.setStatus("FAILED");
             transaction.setStatus("FAILED");
 

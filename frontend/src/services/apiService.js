@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 
@@ -221,4 +222,16 @@ export const getReviewsForCourse = (courseId) => {
 /** Lấy lịch sử mua hàng */
 export const getPurchaseHistory = () => {
     return apiClient.get('/orders/my-history');
+};
+
+/** Lấy nội dung khóa học đã mua (yêu cầu token) */
+export const getEnrolledCourseContent = (slug) => {
+    // Gọi vào EnrollmentController thay vì LearnController
+    return apiClient.get(`/enrollments/${slug}/content`);
+};
+
+/** Đánh dấu tiến độ bài học */
+export const updateLessonProgress = (data) => {
+    // data = { courseId, lessonId, completed }
+    return apiClient.post('/progress/lesson', data);
 };

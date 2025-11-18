@@ -31,4 +31,5 @@ public class CourseResponse {
     private String instructorName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Integer progress = 0;
 }

@@ -10,7 +10,9 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List; // <-- THÊM IMPORT
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -28,6 +30,7 @@ public class CourseDetailResponse {
     private CourseStatus status;
     private BigDecimal price;
     private Boolean isFree;
+    private Set<Long> completedLessonIds = new HashSet<>();
 
     // --- Nội dung & Yêu cầu ---
     private String requirements;
