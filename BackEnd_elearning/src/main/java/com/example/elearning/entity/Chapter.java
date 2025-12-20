@@ -1,8 +1,12 @@
 package com.example.elearning.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -23,15 +27,39 @@ public class Chapter {
     @Column(name = "order_index", nullable = false)
     private Integer orderIndex;
 
-    @Column(name = "course_id", nullable = false)
-    private Long courseId;
+    // --- BỎ THUỘC TÍNH `courseId` RIÊNG LẺ ---
+    // @Column(name = "course_id", nullable = false)
+    // private Long courseId;
 
-    // Mối quan hệ: Một Chapter có nhiều Lesson
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    @JoinColumn(name = "chapter_id", referencedColumnName = "id")
-    @OrderBy("orderIndex ASC") // Luôn sắp xếp các bài học theo thứ tự
-    private List<Lesson> lessons;
+    // --- THAY BẰNG MỐI QUAN HỆ ĐỐI TƯỢNG @ManyToOne ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id", nullable = false)
+    @JsonIgnore // Ngăn lỗi lặp vô hạn khi API trả về JSON
+    private Course course;
+    // ----------------------------------------------------
 
+    // Mối quan hệ: Một Chapter có nhiều Lesson (thiết lập 2 chiều)
+    @OneToMany(
+            mappedBy = "chapter", // "chapter" là tên thuộc tính trong Lesson Entity
+            cascade = CascadeType.ALL,
+            fetch = FetchType.EAGER,
+            orphanRemoval = true
+    )
+    @OrderBy("orderIndex ASC")
+    private List<Lesson> lessons = new ArrayList<>();
+
+    @CreationTimestamp // Dùng annotation cho gọn
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    // Helper method để đồng bộ hóa
+    public void addLesson(Lesson lesson) {
+        lessons.add(lesson);
+        lesson.setChapter(this);
+    }
+
+    public void removeLesson(Lesson lesson) {
+        lessons.remove(lesson);
+        lesson.setChapter(null);
+    }
 }

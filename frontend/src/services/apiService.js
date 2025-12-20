@@ -104,6 +104,15 @@ export const publishCourse = (courseId) => {
     // Endpoint này không cần body, chỉ cần gửi request POST
     return apiClient.post(`/courses/${courseId}/publish`);
 };
+
+export const unpublishCourse = (courseId) => {
+    return apiClient.post(`/courses/${courseId}/unpublish`);
+};
+
+export const getMyInstructorCourses = () => {
+    return apiClient.get('/courses/my-courses');
+};
+
 export const createChapter = (chapterData) => apiClient.post('/chapters', chapterData);
 export const updateChapter = (id, data) => apiClient.put(`/chapters/${id}`, data);
 export const deleteChapter = (id) => apiClient.delete(`/chapters/${id}`);
@@ -235,3 +244,4 @@ export const updateLessonProgress = (data) => {
     // data = { courseId, lessonId, completed }
     return apiClient.post('/progress/lesson', data);
 };
+

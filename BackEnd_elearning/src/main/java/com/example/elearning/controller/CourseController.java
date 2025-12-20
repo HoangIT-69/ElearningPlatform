@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -125,4 +126,24 @@ public class CourseController {
         CourseResponse course = courseService.publishCourse(id, currentUser);
         return ResponseEntity.ok(ApiResponse.success(course, "Publish khóa học thành công"));
     }
+
+    @Operation(summary = "Unpublish một khóa học (chuyển về bản nháp)", description = "Chỉ INSTRUCTOR (chủ sở hữu) hoặc ADMIN.")
+    @PostMapping("/{id}/unpublish")
+    public ResponseEntity<ApiResponse<CourseResponse>> unpublishCourse(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal currentUser
+    ) {
+        CourseResponse course = courseService.unpublishCourse(id, currentUser);
+        return ResponseEntity.ok(ApiResponse.success(course, "Bỏ xuất bản khóa học thành công"));
+    }
+
+    @GetMapping("/my-courses")
+    @PreAuthorize("hasAnyAuthority('INSTRUCTOR', 'ADMIN')")
+    public ResponseEntity<ApiResponse<List<CourseResponse>>> getMyCourses(
+            @AuthenticationPrincipal UserPrincipal currentUser
+    ) {
+        List<CourseResponse> courses = courseService.getCoursesByInstructor(currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success(courses));
+    }
+
 }

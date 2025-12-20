@@ -1,7 +1,7 @@
 package com.example.elearning.service;
 
 import com.example.elearning.dto.request.LessonCreateRequest;
-import com.example.elearning.dto.request.LessonUpdateRequest; // <-- TẠO FILE NÀY
+import com.example.elearning.dto.request.LessonUpdateRequest;
 import com.example.elearning.entity.Chapter;
 import com.example.elearning.entity.Course;
 import com.example.elearning.entity.Lesson;
@@ -20,19 +20,15 @@ import java.time.LocalDateTime;
 @Service
 public class LessonService {
 
-    @Autowired
-    private LessonRepository lessonRepository;
-    @Autowired
-    private ChapterRepository chapterRepository;
-    @Autowired
-    private CourseRepository courseRepository;
+    @Autowired private LessonRepository lessonRepository;
+    @Autowired private ChapterRepository chapterRepository;
+    @Autowired private CourseRepository courseRepository;
 
     @Transactional
     public Lesson createLesson(LessonCreateRequest request, UserPrincipal currentUser) {
         Chapter chapter = findChapterOrThrow(request.getChapterId());
-        Course course = findCourseOrThrow(chapter.getCourseId());
+        Course course = chapter.getCourse(); // Lấy Course từ Chapter
 
-        // Kiểm tra quyền
         validateOwnership(course, currentUser);
 
         Lesson lesson = new Lesson();
@@ -40,14 +36,14 @@ public class LessonService {
         lesson.setVideoUrl(request.getVideoUrl());
         lesson.setVideoDuration(request.getVideoDuration());
         lesson.setIsFree(request.getIsFree());
-        lesson.setChapterId(request.getChapterId());
+        lesson.setChapter(chapter); // Gán đối tượng Chapter
 
-        int lastOrderIndex = lessonRepository.findByChapterIdOrderByOrderIndexAsc(request.getChapterId())
-                .stream().mapToInt(Lesson::getOrderIndex).max().orElse(-1);
+        // Tính toán thứ tự
+        int lastOrderIndex = chapter.getLessons().stream()
+                .mapToInt(Lesson::getOrderIndex).max().orElse(-1);
         lesson.setOrderIndex(lastOrderIndex + 1);
 
-        lesson.setCreatedAt(LocalDateTime.now());
-        lesson.setUpdatedAt(LocalDateTime.now());
+        // createdAt và updatedAt được quản lý tự động bởi @CreationTimestamp/@UpdateTimestamp
 
         return lessonRepository.save(lesson);
     }
@@ -55,17 +51,17 @@ public class LessonService {
     @Transactional
     public Lesson updateLesson(Long lessonId, LessonUpdateRequest request, UserPrincipal currentUser) {
         Lesson lesson = findLessonOrThrow(lessonId);
-        Chapter chapter = findChapterOrThrow(lesson.getChapterId());
-        Course course = findCourseOrThrow(chapter.getCourseId());
+        Chapter chapter = lesson.getChapter(); // Lấy Chapter từ Lesson
+        Course course = chapter.getCourse(); // Lấy Course từ Chapter
 
-        // Kiểm tra quyền
         validateOwnership(course, currentUser);
 
         lesson.setTitle(request.getTitle());
         lesson.setVideoUrl(request.getVideoUrl());
         lesson.setVideoDuration(request.getVideoDuration());
         lesson.setIsFree(request.getIsFree());
-        lesson.setUpdatedAt(LocalDateTime.now());
+
+        // updatedAt sẽ được cập nhật tự động bởi @UpdateTimestamp
 
         return lessonRepository.save(lesson);
     }
@@ -73,21 +69,20 @@ public class LessonService {
     @Transactional
     public void deleteLesson(Long lessonId, UserPrincipal currentUser) {
         Lesson lesson = findLessonOrThrow(lessonId);
-        Chapter chapter = findChapterOrThrow(lesson.getChapterId());
-        Course course = findCourseOrThrow(chapter.getCourseId());
+        Chapter chapter = lesson.getChapter(); // Lấy Chapter từ Lesson
+        Course course = chapter.getCourse(); // Lấy Course từ Chapter
 
-        // Kiểm tra quyền
         validateOwnership(course, currentUser);
 
-        lessonRepository.delete(lesson);
+        // Với orphanRemoval=true trong Chapter, chỉ cần gỡ Lesson khỏi danh sách của cha
+        chapter.getLessons().remove(lesson);
+
+        // Không cần gọi lessonRepository.delete(lesson) nữa,
+        // nhưng gọi thêm cũng không sao và rõ ràng hơn.
+        // lessonRepository.delete(lesson);
     }
 
     // === HELPER METHODS ===
-
-    private Course findCourseOrThrow(Long courseId) {
-        return courseRepository.findById(courseId)
-                .orElseThrow(() -> new AppException("Không tìm thấy khóa học", HttpStatus.NOT_FOUND));
-    }
 
     private Chapter findChapterOrThrow(Long chapterId) {
         return chapterRepository.findById(chapterId)
@@ -103,9 +98,7 @@ public class LessonService {
         boolean isAdmin = currentUser.getAuthorities().stream()
                 .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
 
-        if (isAdmin) {
-            return;
-        }
+        if (isAdmin) return;
 
         if (!course.getInstructorId().equals(currentUser.getId())) {
             throw new AppException("Bạn không có quyền thực hiện hành động này", HttpStatus.FORBIDDEN);

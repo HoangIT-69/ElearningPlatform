@@ -24,11 +24,11 @@ public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecif
     Optional<Course> findBySlug(String slug);
 
     /**
-     * Tìm tất cả các khóa học được tạo bởi một giảng viên cụ thể.
+     * Tìm tất cả các khóa học được tạo bởi một giảng viên, sắp xếp theo ngày tạo mới nhất.
      * @param instructorId ID của giảng viên.
      * @return Danh sách các khóa học.
      */
-    List<Course> findByInstructorId(Long instructorId);
+    List<Course> findByInstructorIdOrderByCreatedAtDesc(Long instructorId);
 
     /**
      * Tìm các khóa học theo trạng thái với phân trang.

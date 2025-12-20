@@ -4,9 +4,11 @@ import com.example.elearning.dto.request.ChapterCreateRequest;
 import com.example.elearning.dto.request.ChapterUpdateRequest; //
 import com.example.elearning.entity.Chapter;
 import com.example.elearning.entity.Course;
+import com.example.elearning.entity.Lesson;
 import com.example.elearning.exception.AppException;
 import com.example.elearning.repository.ChapterRepository;
 import com.example.elearning.repository.CourseRepository;
+import com.example.elearning.repository.LessonRepository;
 import com.example.elearning.security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,6 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ChapterService {
@@ -22,6 +27,9 @@ public class ChapterService {
     private ChapterRepository chapterRepository;
     @Autowired
     private CourseRepository courseRepository;
+
+    @Autowired
+    private LessonRepository lessonRepository;
 
     @Transactional
     public Chapter createChapter(ChapterCreateRequest request, UserPrincipal currentUser) {
@@ -32,7 +40,7 @@ public class ChapterService {
 
         Chapter chapter = new Chapter();
         chapter.setTitle(request.getTitle());
-        chapter.setCourseId(request.getCourseId());
+        chapter.setCourse(course);
 
         // Tự động tính toán thứ tự
         int lastOrderIndex = chapterRepository.findByCourseIdOrderByOrderIndexAsc(request.getCourseId())
@@ -45,31 +53,39 @@ public class ChapterService {
 
     @Transactional
     public Chapter updateChapter(Long chapterId, ChapterUpdateRequest request, UserPrincipal currentUser) {
+        // 1. Tìm chương học cần cập nhật
         Chapter chapter = findChapterOrThrow(chapterId);
-        Course course = findCourseOrThrow(chapter.getCourseId());
 
-        // Kiểm tra quyền
+        // 2. Lấy đối tượng Course cha trực tiếp từ Chapter
+        //    Không cần phải query lại CourseRepository
+        Course course = chapter.getCourse(); // <-- THAY ĐỔI CHÍNH NẰM Ở ĐÂY
+
+        // 3. Kiểm tra quyền sở hữu
         validateOwnership(course, currentUser);
 
-        // Cập nhật thông tin
+        // 4. Cập nhật thông tin cho Chapter
         chapter.setTitle(request.getTitle());
-        // Bạn có thể thêm các trường khác để cập nhật ở đây (ví dụ: description)
 
+        // Bạn có thể thêm các trường khác để cập nhật ở đây
+
+        // 5. Lưu lại Chapter đã được cập nhật
         return chapterRepository.save(chapter);
     }
+
+
 
     @Transactional
     public void deleteChapter(Long chapterId, UserPrincipal currentUser) {
         Chapter chapter = findChapterOrThrow(chapterId);
-        Course course = findCourseOrThrow(chapter.getCourseId());
+        Course course = chapter.getCourse(); // <-- Sửa ở đây: Lấy course trực tiếp
 
-        // Kiểm tra quyền
         validateOwnership(course, currentUser);
 
-        chapterRepository.delete(chapter);
+        // --- LOGIC XÓA MỚI, ĐƠN GIẢN NHẤT ---
+        // Chỉ cần gỡ bỏ Chapter khỏi danh sách của Course cha.
+        // `orphanRemoval = true` sẽ tự động kích hoạt lệnh DELETE.
+        course.getChapters().remove(chapter);
     }
-
-    // === CÁC PHƯƠNG THỨC HỖ TRỢ ===
 
     private Course findCourseOrThrow(Long courseId) {
         return courseRepository.findById(courseId)

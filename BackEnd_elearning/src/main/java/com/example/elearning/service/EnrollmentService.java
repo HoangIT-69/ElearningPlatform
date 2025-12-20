@@ -1,13 +1,16 @@
 package com.example.elearning.service;
 
 import com.example.elearning.dto.response.CourseResponse;
+import com.example.elearning.dto.response.UserResponse;
 import com.example.elearning.entity.Chapter;
 import com.example.elearning.entity.Course;
 import com.example.elearning.entity.Enrollment;
 import com.example.elearning.entity.User;
+import com.example.elearning.exception.AppException;
 import com.example.elearning.repository.*;
 import com.example.elearning.security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,4 +85,39 @@ public class EnrollmentService {
             return response;
         }).collect(Collectors.toList());
     }
+
+    @Transactional(readOnly = true)
+    public List<UserResponse> getStudentsOfCourse(Long courseId, UserPrincipal currentUser) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new AppException("Không tìm thấy khóa học", HttpStatus.NOT_FOUND));
+
+        boolean isAdmin = currentUser.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+        if (!isAdmin && !course.getInstructorId().equals(currentUser.getId())) {
+            throw new AppException("Bạn không có quyền xem danh sách học viên của khóa học này", HttpStatus.FORBIDDEN);
+        }
+
+        List<Enrollment> enrollments = enrollmentRepository.findByCourseId(courseId);
+        if (enrollments.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> studentIds = enrollments.stream()
+                .map(Enrollment::getStudentId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<User> students = userRepository.findAllById(studentIds);
+
+        // --- BẮT ĐẦU SỬA LỖI ---
+        // Gọi đến hàm mapToUserResponse trong mappingHelper
+        return students.stream()
+                .map(mappingHelper::mapToUserResponse)
+                .collect(Collectors.toList());
+        // --- KẾT THÚC SỬA LỖI ---
+    }
+
+
+
+
 }

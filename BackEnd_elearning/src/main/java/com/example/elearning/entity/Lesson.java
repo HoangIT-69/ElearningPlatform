@@ -1,12 +1,18 @@
 package com.example.elearning.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor; // Thêm NoArgsConstructor
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "lessons")
 @Data
+@NoArgsConstructor // Lombok sẽ tạo constructor rỗng
 public class Lesson {
 
     @Id
@@ -31,12 +37,22 @@ public class Lesson {
     @Column(name = "is_free", nullable = false)
     private Boolean isFree = false;
 
-    @Column(name = "chapter_id", nullable = false)
-    private Long chapterId;
+    // --- BỎ THUỘC TÍNH `chapterId` RIÊNG LẺ ---
+    // @Column(name = "chapter_id", nullable = false)
+    // private Long chapterId;
 
+    // --- THAY BẰNG MỐI QUAN HỆ ĐỐI TƯỢNG @ManyToOne ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chapter_id", nullable = false)
+    @JsonIgnore // Ngăn lỗi lặp vô hạn khi API trả về JSON
+    private Chapter chapter;
+    // ----------------------------------------------------
+
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 }

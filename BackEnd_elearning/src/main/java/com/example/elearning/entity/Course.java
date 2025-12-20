@@ -11,6 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList; // Thêm import này
 import java.util.List;
 
 @Entity
@@ -61,26 +62,23 @@ public class Course {
     private String objectives;
 
     @Column(nullable = false)
-    private Integer totalDuration = 0;  // Tổng thời lượng (phút)
+    private Integer totalDuration = 0;
 
     @Column(nullable = false)
     private Integer enrollmentCount = 0;
 
-    // ✅ FIX - Đổi từ Double sang BigDecimal
     @Column(nullable = false, precision = 2, scale = 1)
     private BigDecimal averageRating = BigDecimal.ZERO;
 
     @Column(nullable = false)
     private Integer reviewCount = 0;
 
-    // Foreign key
     @Column(name = "instructor_id", nullable = false)
     private Long instructorId;
 
     @Column(name = "approved_by")
     private Long approvedBy;
 
-    // ✅ CẢI THIỆN - Dùng @CreationTimestamp/@UpdateTimestamp thay vì @PrePersist
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -90,8 +88,14 @@ public class Course {
 
     private LocalDateTime approvedAt;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    @JoinColumn(name = "course_id", referencedColumnName = "id")
-    @OrderBy("orderIndex ASC") // Luôn sắp xếp các chương theo thứ tự
-    private List<Chapter> chapters;
+    // --- SỬA LẠI HOÀN TOÀN KHỐI NÀY ---
+    @OneToMany(
+            mappedBy = "course", // Chỉ định "course" là thuộc tính quản lý trong Chapter
+            cascade = CascadeType.ALL,
+            fetch = FetchType.EAGER,
+            orphanRemoval = true // Tự động xóa Chapter con khi nó bị gỡ khỏi list
+    )
+    // XÓA DÒNG @JoinColumn KHỎI ĐÂY
+    @OrderBy("orderIndex ASC")
+    private List<Chapter> chapters = new ArrayList<>();
 }
