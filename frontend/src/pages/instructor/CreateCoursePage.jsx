@@ -1,42 +1,77 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect  } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createCourse } from '../../services/apiService';
+import { createCourse,getCategoryTree, addCategoryToCourse } from '../../services/apiService';
 import styles from './CourseForm.module.css'; // Tái sử dụng CSS từ EditCoursePage
 
 const CreateCoursePage = () => {
-    // State để quản lý toàn bộ dữ liệu của form
+    // State cho dữ liệu khóa học cơ bản
     const [courseData, setCourseData] = useState({
         title: '',
         shortDescription: '',
         description: '',
         thumbnail: '',
         previewVideo: '',
-        level: 'BEGINNER', // Giá trị mặc định
+        level: 'BEGINNER',
         price: 0,
         isFree: true,
         requirements: '',
         objectives: ''
     });
 
+    // State riêng để quản lý các category được chọn
+   const [categoryTree, setCategoryTree] = useState([]); // Lưu toàn bộ cây
+   const [selectedParentId, setSelectedParentId] = useState(''); // Lưu ID cha đang được chọn
+   const [childCategories, setChildCategories] = useState([]); // Lưu danh sách con để hiển thị
+   const [selectedCategoryId, setSelectedCategoryId] = useState(''); // ID cuối cùng được chọn để gửi đi
+
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    // Hàm xử lý chung cho tất cả các input
-    const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
+    useEffect(() => {
+            const fetchCategoryTree = async () => {
+                try {
+                    const response = await getCategoryTree();
+                    if (response.data.success) {
+                        setCategoryTree(response.data.data);
+                    }
+                } catch (error) { console.error("Lỗi khi tải cây danh mục:", error); }
+            };
+            fetchCategoryTree();
+        }, []);
 
-        setCourseData(prev => {
-            const newData = { ...prev, [name]: type === 'checkbox' ? checked : value };
+     const handleChange = (e) => {
+            const { name, value, type, checked } = e.target;
+            setCourseData(prev => {
+                const newData = { ...prev, [name]: type === 'checkbox' ? checked : value };
+                if (name === 'isFree' && checked) {
+                    newData.price = 0;
+                }
+                return newData;
+            });
+        };
 
-            // Nếu check vào "Miễn phí", tự động set giá về 0
-            if (name === 'isFree' && checked) {
-                newData.price = 0;
+        // Hàm xử lý khi chọn danh mục CHA
+        const handleParentCategoryChange = (e) => {
+            const parentId = e.target.value;
+            setSelectedParentId(parentId);
+            setSelectedCategoryId(''); // Reset lựa chọn con
+
+            if (parentId) {
+                // Tìm các con tương ứng trong cây đã tải về
+                const parent = categoryTree.find(cat => cat.id === parseInt(parentId));
+                setChildCategories(parent ? parent.children : []);
+            } else {
+                setChildCategories([]); // Nếu không chọn cha, danh sách con rỗng
             }
+        };
 
-            return newData;
-        });
-    };
+        // Hàm xử lý khi chọn danh mục CON
+        const handleChildCategoryChange = (e) => {
+            setSelectedCategoryId(e.target.value);
+        };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -44,19 +79,31 @@ const CreateCoursePage = () => {
         setError('');
 
         try {
-            // Gửi toàn bộ object courseData lên API
-            const response = await createCourse(courseData);
+            // BƯỚC 1: Tạo khóa học trước
+            const courseResponse = await createCourse(courseData);
 
-            if (response.data.success) {
-                alert('Tạo khóa học thành công!');
-                // Chuyển hướng về trang danh sách khóa học của instructor
+            if (courseResponse.data.success) {
+                const newCourseId = courseResponse.data.data.id;
+
+                // BƯỚC 2: Gán các category đã chọn cho khóa học vừa tạo
+                if (selectedCategoryIds.length > 0) {
+                    // Tạo một mảng các promise, mỗi promise là một lời gọi API
+                    const categoryPromises = selectedCategoryIds.map(categoryId =>
+                        addCategoryToCourse({ courseId: newCourseId, categoryId: categoryId })
+                    );
+
+                    // Chờ cho TẤT CẢ các API gán category hoàn thành
+                    await Promise.all(categoryPromises);
+                }
+
+                alert('Tạo khóa học và gán danh mục thành công!');
                 navigate('/instructor/courses');
             } else {
-                setError(response.data.message || 'Không thể tạo khóa học.');
+                setError(courseResponse.data.message || 'Không thể tạo khóa học.');
             }
         } catch (err) {
             console.error("Lỗi khi tạo khóa học:", err);
-            setError(err.response?.data?.message || 'Đã xảy ra lỗi. Vui lòng thử lại.');
+            setError(err.response?.data?.message || 'Đã xảy ra lỗi.');
         } finally {
             setLoading(false);
         }
@@ -97,6 +144,28 @@ const CreateCoursePage = () => {
                             <option value="ADVANCED">Nâng cao</option>
                         </select>
                     </div>
+                     <div className={styles.formGroup}>
+                                        <label>Danh mục</label>
+                                        <div className={styles.categorySelectGroup}>
+                                            {/* Select Box 1: Danh mục cha */}
+                                            <select onChange={handleParentCategoryChange} value={selectedParentId} required>
+                                                <option value="">-- Chọn danh mục chính --</option>
+                                                {categoryTree.map(parent => (
+                                                    <option key={parent.id} value={parent.id}>{parent.name}</option>
+                                                ))}
+                                            </select>
+
+                                            {/* Select Box 2: Danh mục con (chỉ hiển thị khi đã chọn cha) */}
+                                            {selectedParentId && childCategories.length > 0 && (
+                                                <select onChange={handleChildCategoryChange} value={selectedCategoryId} required>
+                                                    <option value="">-- Chọn danh mục phụ --</option>
+                                                    {childCategories.map(child => (
+                                                        <option key={child.id} value={child.id}>{child.name}</option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                        </div>
+                                    </div>
                     <div className={styles.formGroup}>
                         <label htmlFor="price">Giá (VNĐ)</label>
                         <input type="number" id="price" name="price" value={courseData.price} onChange={handleChange} disabled={courseData.isFree} />

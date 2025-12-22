@@ -164,6 +164,7 @@ export const addCategoryToCourse = (data) => apiClient.post('/course-categories'
 export const removeCategoryFromCourse = (data) => apiClient.delete('/course-categories', { data });
 
 
+
 // User APIs - lấy tài khoản ,update profile,đổi password
 export const getUserProfile = () => apiClient.get('/users/profile');
 export const updateUserProfile = (userId, data) => apiClient.put(`/users/profile/${userId}`, data);

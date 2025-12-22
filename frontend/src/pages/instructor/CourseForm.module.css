@@ -21,3 +21,16 @@
     border: 1px solid #ccc;
     border-radius: 4px;
 }
+.categorySelectGroup {
+    display: flex;
+    gap: 1rem;
+}
+
+/* Style chung cho các select box */
+.categorySelectGroup select {
+    flex: 1; /* Chia đều không gian */
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+}

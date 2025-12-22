@@ -1,12 +1,51 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getCourseById, createChapter, deleteChapter, createLesson, deleteLesson } from '../../services/apiService';
+import { getCourseById, createChapter, deleteChapter, updateChapter, createLesson, deleteLesson, updateLesson } from '../../services/apiService';
 import styles from './CurriculumPage.module.css';
-import AddLessonModal from '../../pages/instructor/AddLessonModal';
+import AddLessonModal from '../../components/instructor/AddLessonModal';
+import EditChapterModal from '../../components/instructor/EditChapterModal'; // <-- Import
+import EditLessonModal from '../../components/instructor/EditLessonModal';
 // --- Component con để quản lý một chương ---
+
+
+const LessonEditor = ({ lesson, onUpdate }) => {
+    const [isEditing, setIsEditing] = useState(false);
+
+    const handleDeleteLesson = async () => {
+        if (window.confirm(`Xóa bài học "${lesson.title}"?`)) {
+            try {
+                await deleteLesson(lesson.id);
+                onUpdate();
+            } catch (error) {
+                alert("Lỗi khi xóa bài học.");
+            }
+        }
+    };
+
+    return (
+        <>
+            <li className={styles.lessonItem}>
+                <span>{lesson.orderIndex + 1}. {lesson.title}</span>
+                <div className={styles.lessonActions}>
+                    <button onClick={() => setIsEditing(true)} className={styles.actionButton}>Sửa</button>
+                    <button onClick={handleDeleteLesson} className={styles.actionButtonDelete}>Xóa</button>
+                </div>
+            </li>
+            {isEditing && (
+                <EditLessonModal
+                    lesson={lesson}
+                    onClose={() => setIsEditing(false)}
+                    onSuccess={onUpdate}
+                />
+            )}
+        </>
+    );
+};
+
 const ChapterEditor = ({ chapter, onUpdate }) => {
     // State để quản lý việc hiển thị modal
     const [isAddingLesson, setIsAddingLesson] = useState(false);
+    const [isEditingChapter, setIsEditingChapter] = useState(false); // <-- Thêm state mới
 
    const handleDeleteChapter = async () => {
        if (window.confirm(`Bạn có chắc muốn xóa chương "${chapter.title}" không? Tất cả bài học bên trong cũng sẽ bị xóa.`)) {
@@ -28,22 +67,15 @@ const ChapterEditor = ({ chapter, onUpdate }) => {
                     <strong>Chương {chapter.orderIndex + 1}: {chapter.title}</strong>
                     <div className={styles.chapterActions}>
                         <button onClick={handleAddLesson} className={styles.actionButton}>+ Thêm bài học</button>
+                        {/* --- THÊM NÚT SỬA CHƯƠNG --- */}
+                        <button onClick={() => setIsEditingChapter(true)} className={styles.actionButton}>Sửa</button>
                         <button onClick={handleDeleteChapter} className={styles.actionButtonDelete}>Xóa chương</button>
                     </div>
                 </div>
                 <ul className={styles.lessonList}>
+                    {/* --- SỬ DỤNG COMPONENT LESSONEDITOR MỚI --- */}
                     {chapter.lessons?.map(lesson => (
-                        <li key={lesson.id} className={styles.lessonItem}>
-                            <span>{lesson.orderIndex + 1}. {lesson.title}</span>
-                            <div>
-                                <button onClick={async () => {
-                                    if(window.confirm(`Xóa bài học "${lesson.title}"?`)) {
-                                        await deleteLesson(lesson.id);
-                                        onUpdate();
-                                    }
-                                }} className={styles.actionButtonDelete}>Xóa</button>
-                            </div>
-                        </li>
+                        <LessonEditor key={lesson.id} lesson={lesson} onUpdate={onUpdate} />
                     ))}
                 </ul>
             </div>
@@ -53,6 +85,14 @@ const ChapterEditor = ({ chapter, onUpdate }) => {
                 <AddLessonModal
                     chapterId={chapter.id}
                     onClose={() => setIsAddingLesson(false)}
+                    onSuccess={onUpdate}
+                />
+            )}
+            {/* --- THÊM PHẦN RENDER MODAL SỬA CHƯƠNG --- */}
+            {isEditingChapter && (
+                <EditChapterModal
+                    chapter={chapter}
+                    onClose={() => setIsEditingChapter(false)}
                     onSuccess={onUpdate}
                 />
             )}
