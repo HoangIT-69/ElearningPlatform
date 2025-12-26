@@ -72,4 +72,13 @@ public class UserController {
         userService.changePassword(userId, request, currentUser);
         return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công"));
     }
+
+    @Operation(summary = "Lấy thông tin của một người dùng bất kỳ theo ID (Yêu cầu quyền ADMIN)")
+    @GetMapping("/{userId}")
+    @PreAuthorize("hasAuthority('ADMIN')") // Chỉ cho phép người có quyền ADMIN
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Long userId) {
+        UserResponse userProfile = userService.getUserProfile(userId);
+        return ResponseEntity.ok(ApiResponse.success(userProfile));
+    }
+
 }
