@@ -102,17 +102,18 @@ public class ChapterService {
      * Cho phép nếu người dùng là Admin HOẶC là chủ sở hữu khóa học.
      */
     private void validateOwnership(Course course, UserPrincipal currentUser) {
+        System.out.println("DEBUG: User ID hiện tại = " + currentUser.getId());
+        System.out.println("DEBUG: Course Instructor ID = " + course.getInstructorId());
+
         boolean isAdmin = currentUser.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(a -> a.getAuthority().matches("(?i)(ROLE_)?ADMIN"));
 
-        // Nếu là Admin, cho phép thực hiện ngay lập tức
-        if (isAdmin) {
-            return;
-        }
+        // Ép kiểu chắc chắn về Long để so sánh cho chuẩn
+        boolean isOwner = String.valueOf(course.getInstructorId())
+                .equals(String.valueOf(currentUser.getId()));
 
-        // Nếu không phải Admin, kiểm tra xem có phải là instructor sở hữu khóa học không
-        if (!course.getInstructorId().equals(currentUser.getId())) {
-            throw new AppException("Bạn không có quyền thực hiện hành động này trên khóa học", HttpStatus.FORBIDDEN);
+        if (!isAdmin && !isOwner) {
+            throw new AppException("Bạn không có quyền thực hiện hành động này", HttpStatus.FORBIDDEN);
         }
     }
 }

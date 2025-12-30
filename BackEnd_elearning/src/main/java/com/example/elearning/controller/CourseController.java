@@ -137,13 +137,14 @@ public class CourseController {
         return ResponseEntity.ok(ApiResponse.success(course, "Bỏ xuất bản khóa học thành công"));
     }
 
+    @Operation(summary = "Lấy danh sách các khóa học của một giảng viên (Public)")
+    // Xóa @PreAuthorize và @SecurityRequirement
     @GetMapping("/my-courses")
-    @PreAuthorize("hasAnyAuthority('INSTRUCTOR', 'ADMIN')")
-    public ResponseEntity<ApiResponse<List<CourseResponse>>> getMyCourses(
-            @AuthenticationPrincipal UserPrincipal currentUser
+    public ResponseEntity<ApiResponse<List<CourseResponse>>> getCoursesByInstructor(
+            // Nhận instructorId từ query parameter
+            @Parameter(description = "ID của giảng viên", required = true) @RequestParam Long instructorId
     ) {
-        List<CourseResponse> courses = courseService.getCoursesByInstructor(currentUser.getId());
+        List<CourseResponse> courses = courseService.getCoursesByInstructor(instructorId);
         return ResponseEntity.ok(ApiResponse.success(courses));
     }
-
 }

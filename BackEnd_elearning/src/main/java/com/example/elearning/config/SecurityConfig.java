@@ -46,6 +46,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/courses/**").hasAnyAuthority("INSTRUCTOR", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/courses/**").hasAnyAuthority("INSTRUCTOR", "ADMIN")
 
+
+                        .requestMatchers(HttpMethod.GET, "/api/users/instructors/popular").permitAll()
+
                         // Các API quản lý Chapter, Lesson, Course-Category...
                         // Chúng ta sẽ dùng @PreAuthorize nên không cần định nghĩa ở đây nữa
                         .requestMatchers("/api/chapters/**").authenticated()
@@ -54,6 +57,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/payment/create-payment").authenticated()
                         // Tất cả các request còn lại đều yêu cầu phải xác thực
                         .anyRequest().authenticated()
+
+
                 );
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

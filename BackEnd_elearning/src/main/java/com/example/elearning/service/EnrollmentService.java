@@ -1,6 +1,7 @@
 package com.example.elearning.service;
 
 import com.example.elearning.dto.response.CourseResponse;
+import com.example.elearning.dto.response.UserDashboardStatsResponse;
 import com.example.elearning.dto.response.UserResponse;
 import com.example.elearning.entity.Chapter;
 import com.example.elearning.entity.Course;
@@ -14,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -109,12 +112,64 @@ public class EnrollmentService {
 
         List<User> students = userRepository.findAllById(studentIds);
 
-        // --- BẮT ĐẦU SỬA LỖI ---
-        // Gọi đến hàm mapToUserResponse trong mappingHelper
         return students.stream()
                 .map(mappingHelper::mapToUserResponse)
                 .collect(Collectors.toList());
-        // --- KẾT THÚC SỬA LỖI ---
+
+    }
+
+    @Transactional(readOnly = true)
+    public UserDashboardStatsResponse getUserDashboardStats(UserPrincipal currentUser) {
+        Long userId = currentUser.getId();
+
+        // Lấy tổng số khóa học đã đăng ký và đã hoàn thành
+        long enrolledCount = enrollmentRepository.countByStudentId(userId);
+        long completedCount = enrollmentRepository.countByStudentIdAndProgress(userId, 100);
+
+        // Lấy danh sách các enrollment của user
+        List<Enrollment> enrollments = enrollmentRepository.findByStudentId(userId);
+
+        long totalMinutes = 0;
+        long currentStreak = 0;
+
+        if (!enrollments.isEmpty()) {
+            List<Long> enrollmentIds = enrollments.stream().map(Enrollment::getId).collect(Collectors.toList());
+
+            // --- TÍNH TỔNG GIỜ HỌC ---
+            List<Long> courseIds = enrollments.stream().map(Enrollment::getCourseId).collect(Collectors.toList());
+            List<Course> enrolledCourses = courseRepository.findAllById(courseIds);
+            totalMinutes = enrolledCourses.stream()
+                    .mapToInt(course -> course.getTotalDuration() != null ? course.getTotalDuration() : 0)
+                    .sum();
+
+            // --- TÍNH CHUỖI NGÀY HỌC (STREAK) ---
+            List<LocalDate> activityDates = lessonProgressRepository.findDistinctUpdatedDatesByEnrollmentIds(enrollmentIds);
+
+            if (!activityDates.isEmpty()) {
+                LocalDate today = LocalDate.now();
+                LocalDate lastActivityDate = activityDates.get(0);
+
+                // Kiểm tra xem có hoạt động trong hôm nay hoặc hôm qua không
+                if (ChronoUnit.DAYS.between(lastActivityDate, today) <= 1) {
+                    currentStreak = 1;
+                    // Lặp qua các ngày hoạt động để đếm chuỗi
+                    for (int i = 0; i < activityDates.size() - 1; i++) {
+                        LocalDate currentDay = activityDates.get(i);
+                        LocalDate previousDay = activityDates.get(i + 1);
+
+                        // Nếu ngày hiện tại và ngày trước đó cách nhau đúng 1 ngày
+                        if (ChronoUnit.DAYS.between(previousDay, currentDay) == 1) {
+                            currentStreak++;
+                        } else {
+                            // Nếu chuỗi bị ngắt, dừng đếm
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return new UserDashboardStatsResponse(enrolledCount, completedCount, totalMinutes, currentStreak);
     }
 
 

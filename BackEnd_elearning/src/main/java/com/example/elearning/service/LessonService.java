@@ -96,11 +96,11 @@ public class LessonService {
 
     private void validateOwnership(Course course, UserPrincipal currentUser) {
         boolean isAdmin = currentUser.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(a -> a.getAuthority().matches("(?i)(ROLE_)?ADMIN"));
 
-        if (isAdmin) return;
+        boolean isOwner = java.util.Objects.equals(course.getInstructorId(), currentUser.getId());
 
-        if (!course.getInstructorId().equals(currentUser.getId())) {
+        if (!isAdmin && !isOwner) {
             throw new AppException("Bạn không có quyền thực hiện hành động này", HttpStatus.FORBIDDEN);
         }
     }

@@ -1,9 +1,6 @@
 package com.example.elearning.controller;
 
-import com.example.elearning.dto.response.ApiResponse;
-import com.example.elearning.dto.response.CourseDetailResponse;
-import com.example.elearning.dto.response.CourseResponse;
-import com.example.elearning.dto.response.UserResponse;
+import com.example.elearning.dto.response.*;
 import com.example.elearning.security.UserPrincipal;
 import com.example.elearning.service.CourseService;
 import com.example.elearning.service.EnrollmentService;
@@ -60,5 +57,14 @@ public class EnrollmentController {
     ) {
         List<UserResponse> students = enrollmentService.getStudentsOfCourse(courseId, currentUser);
         return ResponseEntity.ok(ApiResponse.success(students));
+    }
+
+    @Operation(summary = "Lấy các số liệu thống kê cho dashboard của người học")
+    @GetMapping("/my-stats")
+    public ResponseEntity<ApiResponse<UserDashboardStatsResponse>> getMyDashboardStats(
+            @AuthenticationPrincipal UserPrincipal currentUser
+    ) {
+        UserDashboardStatsResponse stats = enrollmentService.getUserDashboardStats(currentUser);
+        return ResponseEntity.ok(ApiResponse.success(stats));
     }
 }

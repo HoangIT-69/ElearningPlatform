@@ -3,6 +3,7 @@ package com.example.elearning.service;
 import com.example.elearning.dto.request.AdminUserUpdateRequest;
 import com.example.elearning.dto.request.UserChangePasswordRequest; // <-- Thêm import
 import com.example.elearning.dto.request.UserUpdateProfileRequest;
+import com.example.elearning.dto.response.PopularInstructorResponse;
 import com.example.elearning.dto.response.UserResponse;
 import com.example.elearning.entity.User;
 import com.example.elearning.exception.AppException;
@@ -11,11 +12,14 @@ import com.example.elearning.security.UserPrincipal;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder; // <-- Thêm import
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class UserService {
@@ -110,6 +114,17 @@ public class UserService {
         userRepository.save(user);
     }
 
+    /**
+     * Lấy danh sách các giảng viên tiêu biểu.
+     * @param limit Số lượng giảng viên muốn lấy.
+     * @return Danh sách PopularInstructorResponse.
+     */
+    @Transactional(readOnly = true)
+    public List<PopularInstructorResponse> getPopularInstructors(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return userRepository.findPopularInstructors(pageable);
+    }
+
     // --- Helper Methods ---
     private User findUserOrThrow(Long id) {
         return userRepository.findById(id)
@@ -121,4 +136,6 @@ public class UserService {
         BeanUtils.copyProperties(user, userResponse, "password"); // Copy các thuộc tính, loại trừ password
         return userResponse;
     }
+
+
 }
