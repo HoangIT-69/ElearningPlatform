@@ -31,6 +31,7 @@ export default function Instructor() {
         fullName: userProfile.data.fullName || "",
         phone: userProfile.data.phone || "",
         bio: userProfile.data.bio || "",
+        avatar: userProfile.data.avatar || "",
       });
     }
   }, [userProfile]);
@@ -39,6 +40,7 @@ export default function Instructor() {
     fullName: "",
     phone: "",
     bio: "",
+    avatar: "",
   });
 
   const handleOnChange = (e) => {

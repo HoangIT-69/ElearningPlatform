@@ -33,3 +33,12 @@ export const updateUser = async (userId, data) => {
   );
   return res.data;
 }
+
+export const getPopularInstructors = async (limit = 4) => {
+  const res = await axios.get(`${import.meta.env.VITE_API_URL}/users/instructors/popular`, {
+    params: {
+        limit: limit
+    },
+  });
+  return res.data;
+}

@@ -18,12 +18,10 @@ const Course = () => {
 
   const instructorId = localStorage.getItem('userId');
 
-  // Sử dụng useQuery đồng nhất
   const { data: response, isLoading, refetch } = useQuery({
     queryKey: ["instructor-courses", instructorId, page, size],
     queryFn: async () => {
       if (!instructorId) return null;
-      // Gọi API lấy khóa học của giảng viên
       const res = await getMyInstructorCourses(instructorId);
       console.log("Dữ liệu API trả về:", res); // Bạn hãy F12 xem log này để check cấu trúc
       return res;
@@ -31,11 +29,6 @@ const Course = () => {
     enabled: !!instructorId,
   });
 
-  /**
-   * PHẦN QUAN TRỌNG: Kiểm tra cấu trúc dữ liệu
-   * API Instructor thường trả về mảng trực tiếp trong res.data
-   * Nếu API của bạn có phân trang giống Admin thì giữ nguyên .content
-   */
   const courseList = response?.data?.content || response?.data || [];
   const totalPages = response?.data?.totalPages || 1;
 
@@ -132,7 +125,6 @@ const Course = () => {
         </table>
       </div>
 
-      {/* Phân trang - Chỉ hiện nếu có nhiều hơn 1 trang */}
       {totalPages > 1 && (
         <div className="flex items-center space-x-1 justify-center mt-6 mb-10">
           <button
@@ -153,7 +145,6 @@ const Course = () => {
         </div>
       )}
 
-      {/* Modals */}
       {openEdit && <EditCourse courseId={selectedCourseId} onClose={() => { setOpenEdit(false); refetch(); }} />}
       {openInfo && <CourseInformation courseId={selectedCourseId} onClose={() => setOpenInfo(false)} />}
       {openStudents && <Students courseId={selectedCourseId} onClose={() => setOpenStudents(false)} />}

@@ -70,3 +70,16 @@ export const getEnrollmentContent = async (slug) => {
   );
   return res.data;
 };
+
+
+export const getMyStats = async () => {
+  const res = await axios.get(
+    `${import.meta.env.VITE_API_URL}/enrollments/my-stats`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return res.data;  
+}

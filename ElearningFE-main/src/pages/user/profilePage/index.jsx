@@ -31,6 +31,7 @@ export default function Profile() {
         fullName: userProfile.data.fullName || "",
         phone: userProfile.data.phone || "",
         bio: userProfile.data.bio || "",
+        avatar: userProfile.data.avatar || "",
       });
     }
   }, [userProfile]);
@@ -39,6 +40,7 @@ export default function Profile() {
     fullName: "",
     phone: "",
     bio: "",
+    avatar: "",
   });
 
   const handleOnChange = (e) => {
@@ -104,6 +106,15 @@ export default function Profile() {
     }
   };
 
+  const fetchStats = async () => {
+    return await profileService.getMyStats();
+  };
+
+  const { data: stats } = useQuery({
+    queryKey: ["myStats"],
+    queryFn: fetchStats,
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 py-10 bg-gradient-to-br from-red-300 via-white to-red-100">
       <div className="max-w-7xl mx-auto mb-5 flex gap-4">
@@ -124,7 +135,9 @@ export default function Profile() {
               />
             </svg>
           </div>
-          <div className="text-2xl font-bold mt-3">12</div>
+          <div className="text-2xl font-bold mt-3">
+            {stats?.data?.enrolledCourses ?? 0}
+          </div>
           <div className="text-gray-500">Các khóa học đã đăng ký</div>
         </div>
         <div className="bg-white border border-red-200 rounded-2xl p-6 flex-1">
@@ -147,7 +160,9 @@ export default function Profile() {
               </g>
             </svg>
           </div>
-          <div className="text-2xl font-bold mt-3">7</div>
+          <div className="text-2xl font-bold mt-3">
+            {stats?.data?.completedCourses ?? 0}
+          </div>
           <div className="text-gray-500">Khóa học đã hoàn thành</div>
         </div>
         <div className="bg-white border border-red-200 rounded-2xl p-6 flex-1">
@@ -164,7 +179,9 @@ export default function Profile() {
               />
             </svg>
           </div>
-          <div className="text-2xl font-bold mt-3">156</div>
+          <div className="text-2xl font-bold mt-3">
+            {Math.floor((stats?.data?.totalLearningMinutes ?? 0) / 60)}
+          </div>
           <div className="text-gray-500">Giờ học</div>
         </div>
         <div className="bg-white border border-red-200 rounded-2xl p-6 flex-1">
@@ -181,7 +198,9 @@ export default function Profile() {
               />
             </svg>
           </div>
-          <div className="text-2xl font-bold mt-3">15 ngày</div>
+          <div className="text-2xl font-bold mt-3">
+            {stats?.data?.currentStreak ?? 0} ngày
+          </div>
           <div className="text-gray-500">Chuỗi hiện tại</div>
         </div>
       </div>

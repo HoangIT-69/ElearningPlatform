@@ -30,6 +30,18 @@ const InfoUser = ({
 
         <div className="">
           <div>
+            <div className="text-l font-bold">Avatar</div>
+            <input
+              type="text"
+              name="avatar"
+              className="w-full border border-red-200 rounded-md py-3 pl-6 mt-2 mb-4 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-400"
+              placeholder="Nhập link ảnh avatar..."
+              onChange={handleOnChange}
+              value={formData.avatar || ""}
+            />
+          </div>
+
+          <div>
             <div className="text-l font-bold">Tên người dùng</div>
             <input
               type="text"
@@ -44,11 +56,10 @@ const InfoUser = ({
             <div className="text-l font-bold">Email</div>
             <input
               type="text"
-              name="email"
               className="w-full border border-red-200 rounded-md py-3 pl-6 mt-2 mb-4 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-400"
               placeholder="Email của bạn..."
-              onChange={handleOnChange}
               value={userProfile.data?.email || ""}
+              disabled
             />
           </div>
           <div>

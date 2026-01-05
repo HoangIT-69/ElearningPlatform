@@ -24,21 +24,20 @@ const CourseLessonPage = () => {
 
   const course = courseData?.data ?? {};
 
-// 2️⃣ Tạo Set các lesson đã hoàn thành
 const completedLessonIds = new Set(
   (course.lessonProgresses ?? [])
     .filter(p => p.completed)
     .map(p => p.lessonId)
 );
 
-// 3️⃣ MERGE completed vào lesson
 const chaptersWithCompleted = (course.chapters ?? []).map(chapter => ({
   ...chapter,
   lessons: chapter.lessons.map(lesson => ({
     ...lesson,
-    completed: completedLessonIds.has(lesson.id), // ⭐ DÒNG QUAN TRỌNG
+    completed: completedLessonIds.has(lesson.id),
   })),
 }));
+
   const allLessons = course?.chapters?.flatMap((ch) => ch.lessons) ?? [];
   const currentLesson = allLessons.find((l) => l.id === lessonId);
 
@@ -101,6 +100,7 @@ const chaptersWithCompleted = (course.chapters ?? []).map(chapter => ({
             isEnrolled={true}
             courseSlug={slug}
             currentLessonId={lessonId}
+            courseId={course.id}
           />
         ))}
       </div>
